@@ -1,0 +1,13 @@
+order_id,product_name,price,quantity,product_cost,shipping_cost
+ORD-1001,Auriculares Bluetooth Pro,49.99,2,30.00,5.50
+ORD-1002,Funda Protectora Silicona,4.50,1,5.00,2.50
+ORD-1003,Teclado Mecánico RGB,89.90,1,38.00,6.00
+ORD-1004,Cable USB-C Carga Rápida,2.99,1,2.80,1.50
+ORD-1005,Mouse Inalámbrico Ergonómico,29.50,3,32.00,4.50
+ORD-1006,Stickers Programador Pack,1.99,1,1.80,1.20
+ORD-1007,Monitor Gamer 27 Pulgadas,220.00,1,130.00,15.00
+ORD-1008,Soporte Laptop Aluminio,34.00,2,22.00,5.00
+ORD-1009,Adaptador HDMI a DisplayPort,8.50,1,8.00,2.00
+ORD-1010,Lámpara LED Inteligente,26.00,1,11.00,3.50
+ORD-1011,Webcam 1080p Streaming,58.00,2,40.00,6.00
+ORD-1012,Alfombrilla XXL Gaming,19.99,1,9.00,3.00

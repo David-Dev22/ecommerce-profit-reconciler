@@ -1,0 +1,32 @@
+{
+  "name": "conciliador-de-ganancias",
+  "version": "1.0.0",
+  "description": "Herramienta de conciliación financiera de ventas e-commerce con Node.js, Express, SQLite y Pico.css",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test/test-math.js && node test/test-e2e.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
+    "express": "^4.21.2",
+    "json2csv": "^6.0.0-alpha.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ecommerce",
+    "finance",
+    "reconciliation",
+    "sqlite",
+    "express",
+    "picocss"
+  ],
+  "author": "David Dev",
+  "license": "MIT"
+}

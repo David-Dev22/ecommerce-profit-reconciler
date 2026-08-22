@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conciliador de Ganancias E-commerce</title>
+  <!-- Pico.css v2 CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+</head>
+<body>
+
+  <!-- Encabezado Principal -->
+  <header class="container">
+    <nav>
+      <ul>
+        <li>
+          <strong>📊 Conciliador de Ganancias E-commerce</strong>
+        </li>
+      </ul>
+      <ul>
+        <li>
+          <button class="outline contrast" id="btn-theme-toggle" style="margin: 0; padding: 4px 12px;">🌓 Tema</button>
+        </li>
+      </ul>
+    </nav>
+    <p>
+      <small>
+        Sistema de conciliación financiera automatizada: cálculo de ingresos brutos, comisiones de pasarela (2.9% + $0.30), costos directos y detección en tiempo real de operaciones en pérdida.
+      </small>
+    </p>
+  </header>
+
+  <main class="container">
+
+    <!-- Tarjetas de Métricas Clave (3 Columnas) -->
+    <section>
+      <div class="grid">
+        <article>
+          <header>
+            <small><strong>Facturación Total Bruta</strong></small>
+          </header>
+          <h2 id="gross-total">$0.00</h2>
+          <footer>
+            <small id="total-count">0 transacciones registradas</small>
+          </footer>
+        </article>
+
+        <article>
+          <header>
+            <small><strong>Comisiones Totales Pagadas</strong></small>
+          </header>
+          <h2 id="fee-total">$0.00</h2>
+          <footer>
+            <small>Fórmula: (Bruto &times; 2.9%) + $0.30</small>
+          </footer>
+        </article>
+
+        <article>
+          <header>
+            <small><strong>Ganancia Neta Real</strong></small>
+          </header>
+          <h2 id="net-total">$0.00</h2>
+          <footer>
+            <small id="loss-count">0 operaciones en pérdida</small>
+          </footer>
+        </article>
+      </div>
+    </section>
+
+    <!-- Panel de Control y Acciones -->
+    <section>
+      <article>
+        <header>
+          <strong>⚙️ Panel de Control y Procesamiento</strong>
+        </header>
+
+        <form id="upload-form">
+          <div class="grid">
+            <div>
+              <label for="csv-file">
+                Seleccionar Archivo CSV de Ventas
+                <input type="file" id="csv-file" accept=".csv" required>
+              </label>
+            </div>
+            <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;">
+              <button type="submit" id="btn-upload">📤 Procesar CSV</button>
+              <button type="button" class="secondary" id="btn-load-demo">⚡ Cargar Datos Demo</button>
+              <button type="button" class="contrast outline" id="btn-export-csv">📥 Descargar Reporte Conciliado</button>
+            </div>
+          </div>
+        </form>
+
+        <div id="status-message" aria-live="polite" style="margin-top: 10px;"></div>
+      </article>
+    </section>
+
+    <!-- Tabla de Transacciones Conciliadas -->
+    <section>
+      <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3>Detalle de Transacciones Conciliadas</h3>
+        <span id="table-summary-badge"><small>Esperando datos...</small></span>
+      </header>
+
+      <figure>
+        <table role="grid">
+          <thead>
+            <tr>
+              <th scope="col">Order ID</th>
+              <th scope="col">Producto</th>
+              <th scope="col">Ingreso Bruto</th>
+              <th scope="col">Comisión</th>
+              <th scope="col">Costos</th>
+              <th scope="col">Ganancia Neta</th>
+              <th scope="col">Margen %</th>
+              <th scope="col">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="records-tbody">
+            <tr>
+              <td colspan="8" style="text-align: center;">
+                <small>No hay registros cargados. Sube un archivo CSV o haz clic en "Cargar Datos Demo".</small>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </figure>
+    </section>
+
+  </main>
+
+  <footer class="container" style="text-align: center; margin-top: 40px;">
+    <small>Conciliador de Ganancias E-commerce &copy; 2026 &bull; Construido con Node.js, SQLite &amp; Pico.css v2</small>
+  </footer>
+
+  <!-- Lógica JavaScript Vanilla -->
+  <script>
+    // Formateador de moneda USD
+    const currencyFormatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    // Elementos DOM
+    const grossTotalEl = document.getElementById('gross-total');
+    const feeTotalEl = document.getElementById('fee-total');
+    const netTotalEl = document.getElementById('net-total');
+    const totalCountEl = document.getElementById('total-count');
+    const lossCountEl = document.getElementById('loss-count');
+    const statusMsgEl = document.getElementById('status-message');
+    const recordsTbodyEl = document.getElementById('records-tbody');
+    const tableBadgeEl = document.getElementById('table-summary-badge');
+    const uploadForm = document.getElementById('upload-form');
+    const csvFileInput = document.getElementById('csv-file');
+    const btnUpload = document.getElementById('btn-upload');
+    const btnDemo = document.getElementById('btn-load-demo');
+    const btnExport = document.getElementById('btn-export-csv');
+    const btnTheme = document.getElementById('btn-theme-toggle');
+
+    // Manejo de Tema Claro/Oscuro
+    btnTheme.addEventListener('click', () => {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('pico-theme', newTheme);
+    });
+
+    const savedTheme = localStorage.getItem('pico-theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    // Mostrar Notificación de Estado
+    function showNotification(message, isError = false) {
+      if (isError) {
+        statusMsgEl.innerHTML = `<mark role="alert">❌ ${message}</mark>`;
+      } else {
+        statusMsgEl.innerHTML = `<ins>✅ ${message}</ins>`;
+      }
+      setTimeout(() => {
+        if (statusMsgEl.innerHTML.includes(message)) {
+          statusMsgEl.innerHTML = '';
+        }
+      }, 6000);
+    }
+
+    // Actualizar Tarjetas de Métricas
+    function updateMetrics(summary) {
+      const gross = summary.gross_total || 0;
+      const fee = summary.fee_total || 0;
+      const net = summary.net_total || 0;
+      const total = summary.total_records || 0;
+      const loss = summary.loss_count || 0;
+
+      grossTotalEl.textContent = currencyFormatter.format(gross);
+      feeTotalEl.textContent = currencyFormatter.format(fee);
+      netTotalEl.textContent = currencyFormatter.format(net);
+      
+      totalCountEl.textContent = `${total} transacciones procesadas`;
+      lossCountEl.innerHTML = loss > 0 
+        ? `<mark><strong>${loss} operaciones en pérdida</strong></mark>` 
+        : `0 operaciones en pérdida`;
+
+      tableBadgeEl.innerHTML = `<small>Total: <strong>${total}</strong> | Pérdidas: <strong>${loss}</strong></small>`;
+    }
+
+    // Renderizar Filas de la Tabla
+    function renderTable(records) {
+      if (!records || records.length === 0) {
+        recordsTbodyEl.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center;">
+              <small>No hay registros conciliados disponibles.</small>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      recordsTbodyEl.innerHTML = records.map(row => {
+        const isLoss = row.is_loss === 1 || row.is_loss === true;
+        const statusBadge = isLoss
+          ? `<mark role="alert"><strong>⚠️ PÉRDIDA</strong></mark>`
+          : `<ins><strong>✓ RENTABLE</strong></ins>`;
+
+        const netProfitFormatted = currencyFormatter.format(row.net_profit);
+        const netProfitDisplay = isLoss
+          ? `<mark><strong>${netProfitFormatted}</strong></mark>`
+          : `<strong>${netProfitFormatted}</strong>`;
+
+        const marginDisplay = isLoss
+          ? `<mark>${row.net_margin}%</mark>`
+          : `${row.net_margin}%`;
+
+        return `
+          <tr ${isLoss ? 'aria-invalid="true"' : ''}>
+            <td><code>${row.order_id}</code></td>
+            <td>${row.product_name || 'Sin especificar'}</td>
+            <td>${currencyFormatter.format(row.gross_income)}</td>
+            <td>${currencyFormatter.format(row.platform_fee)}</td>
+            <td>${currencyFormatter.format(row.total_cost)}</td>
+            <td>${netProfitDisplay}</td>
+            <td>${marginDisplay}</td>
+            <td>${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Cargar Datos Iniciales
+    async function loadInitialData() {
+      try {
+        const res = await fetch('/api/records');
+        if (res.ok) {
+          const records = await res.json();
+          if (records && records.length > 0) {
+            const sumRes = await fetch('/api/summary');
+            const summary = await sumRes.json();
+            updateMetrics(summary);
+            renderTable(records);
+          }
+        }
+      } catch (err) {
+        console.warn('Servidor iniciando o sin registros previos:', err);
+      }
+    }
+
+    // Evento: Subir CSV
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const file = csvFileInput.files[0];
+      if (!file) {
+        showNotification('Por favor, selecciona un archivo .csv para procesar.', true);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      btnUpload.setAttribute('aria-busy', 'true');
+      btnUpload.disabled = true;
+
+      try {
+        const response = await fetch('/api/upload-csv', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          updateMetrics(data.summary);
+          renderTable(data.records);
+          showNotification(data.message || 'Archivo procesado con éxito.');
+          csvFileInput.value = '';
+        } else {
+          showNotification(data.message || 'Error al procesar el archivo.', true);
+        }
+      } catch (error) {
+        showNotification('Error de conexión con el servidor: ' + error.message, true);
+      } finally {
+        btnUpload.removeAttribute('aria-busy');
+        btnUpload.disabled = false;
+      }
+    });
+
+    // Evento: Cargar Datos Demo
+    btnDemo.addEventListener('click', async () => {
+      btnDemo.setAttribute('aria-busy', 'true');
+      btnDemo.disabled = true;
+
+      try {
+        const response = await fetch('/api/load-demo', {
+          method: 'POST'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          updateMetrics(data.summary);
+          renderTable(data.records);
+          showNotification(data.message || 'Dataset demo cargado correctamente.');
+        } else {
+          showNotification(data.message || 'Error al cargar datos demo.', true);
+        }
+      } catch (error) {
+        showNotification('Error de conexión con el servidor: ' + error.message, true);
+      } finally {
+        btnDemo.removeAttribute('aria-busy');
+        btnDemo.disabled = false;
+      }
+    });
+
+    // Evento: Descargar Reporte CSV
+    btnExport.addEventListener('click', () => {
+      window.location.href = '/api/export-csv';
+    });
+
+    // Inicializar al cargar el DOM
+    document.addEventListener('DOMContentLoaded', loadInitialData);
+  </script>
+</body>
+</html>
