@@ -33,6 +33,19 @@ let SQL;
 let db;
 const dbPath = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
 
+/**
+ * Extracts session ID from header, query, or body
+ */
+function getSessionId(req) {
+  return String(
+    req.headers['x-session-id'] || 
+    req.query.sessionId || 
+    req.query.session_id || 
+    (req.body && (req.body.sessionId || req.body.session_id)) || 
+    'default-session'
+  ).trim();
+}
+
 async function initDatabase() {
   if (!SQL) {
     SQL = await initSqlJs();
@@ -51,6 +64,7 @@ async function initDatabase() {
   db.run(`
     CREATE TABLE IF NOT EXISTS sales_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
       order_id TEXT NOT NULL,
       product_name TEXT DEFAULT 'Sin Nombre',
       price REAL NOT NULL,
@@ -66,6 +80,8 @@ async function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sales_session ON sales_records (session_id);`);
 }
 
 function persistDatabase() {
@@ -77,6 +93,22 @@ function persistDatabase() {
     console.error('Error persistiendo base de datos:', err);
   }
 }
+
+/**
+ * Cleanup routine for expired records (> 24 hours)
+ */
+function cleanupOldSessions() {
+  if (!db) return;
+  try {
+    db.run("DELETE FROM sales_records WHERE created_at < datetime('now', '-24 hours');");
+    persistDatabase();
+  } catch (e) {
+    console.warn('Error durante purga de sesiones antiguas:', e.message);
+  }
+}
+
+// Auto-cleanup every 1 hour
+setInterval(cleanupOldSessions, 60 * 60 * 1000);
 
 /**
  * Normalizes synonyms for CSV headers in Spanish and English
@@ -186,26 +218,24 @@ function parseCsvStream(buffer) {
 }
 
 /**
- * Helper to get all records from sql.js
+ * Helper to get records filtered by sessionId
  */
-function getAllRecords() {
-  const res = db.exec('SELECT * FROM sales_records ORDER BY id ASC');
-  if (!res || res.length === 0) return [];
-  const columns = res[0].columns;
-  return res[0].values.map(row => {
-    const obj = {};
-    columns.forEach((col, idx) => {
-      obj[col] = row[idx];
-    });
-    return obj;
-  });
+function getAllRecords(sessionId) {
+  const stmt = db.prepare('SELECT * FROM sales_records WHERE session_id = ? ORDER BY id ASC');
+  stmt.bind([sessionId]);
+  const rows = [];
+  while (stmt.step()) {
+    rows.push(stmt.getAsObject());
+  }
+  stmt.free();
+  return rows;
 }
 
 /**
- * Helper to get summary statistics
+ * Helper to get summary statistics filtered by sessionId
  */
-function getSummaryMetrics() {
-  const res = db.exec(`
+function getSummaryMetrics(sessionId) {
+  const stmt = db.prepare(`
     SELECT 
       COALESCE(SUM(gross_income), 0) AS gross_total,
       COALESCE(SUM(platform_fee), 0) AS fee_total,
@@ -213,38 +243,45 @@ function getSummaryMetrics() {
       COUNT(*) AS total_records,
       COALESCE(SUM(is_loss), 0) AS loss_count
     FROM sales_records
+    WHERE session_id = ?
   `);
-
-  if (!res || res.length === 0 || !res[0].values || res[0].values.length === 0) {
-    return { gross_total: 0, fee_total: 0, net_total: 0, total_records: 0, loss_count: 0 };
+  stmt.bind([sessionId]);
+  let summary = { gross_total: 0, fee_total: 0, net_total: 0, total_records: 0, loss_count: 0 };
+  if (stmt.step()) {
+    const obj = stmt.getAsObject();
+    summary = {
+      gross_total: Math.round(((obj.gross_total || 0) + Number.EPSILON) * 100) / 100,
+      fee_total: Math.round(((obj.fee_total || 0) + Number.EPSILON) * 100) / 100,
+      net_total: Math.round(((obj.net_total || 0) + Number.EPSILON) * 100) / 100,
+      total_records: obj.total_records || 0,
+      loss_count: obj.loss_count || 0
+    };
   }
-
-  const [gross_total, fee_total, net_total, total_records, loss_count] = res[0].values[0];
-  return {
-    gross_total: Math.round(((gross_total || 0) + Number.EPSILON) * 100) / 100,
-    fee_total: Math.round(((fee_total || 0) + Number.EPSILON) * 100) / 100,
-    net_total: Math.round(((net_total || 0) + Number.EPSILON) * 100) / 100,
-    total_records: total_records || 0,
-    loss_count: loss_count || 0
-  };
+  stmt.free();
+  return summary;
 }
 
 /**
- * Helper to save processed records in a database transaction
+ * Helper to save processed records for a specific session in a database transaction
  */
-function saveRecordsTransaction(records) {
+function saveRecordsTransaction(sessionId, records) {
   db.run('BEGIN TRANSACTION;');
-  db.run('DELETE FROM sales_records;');
+  
+  // Clear only current session records
+  const delStmt = db.prepare('DELETE FROM sales_records WHERE session_id = ?');
+  delStmt.run([sessionId]);
+  delStmt.free();
 
-  const stmt = db.prepare(`
+  const insertStmt = db.prepare(`
     INSERT INTO sales_records (
-      order_id, product_name, price, quantity, product_cost, shipping_cost,
+      session_id, order_id, product_name, price, quantity, product_cost, shipping_cost,
       gross_income, platform_fee, total_cost, net_profit, net_margin, is_loss
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   for (const item of records) {
-    stmt.run([
+    insertStmt.run([
+      sessionId,
       item.order_id,
       item.product_name,
       item.price,
@@ -259,7 +296,7 @@ function saveRecordsTransaction(records) {
       item.is_loss
     ]);
   }
-  stmt.free();
+  insertStmt.free();
   db.run('COMMIT;');
   persistDatabase();
 }
@@ -286,6 +323,7 @@ ORD-1002,Ejemplo Producto en Pérdida,4.50,1,5.00,2.50`;
  */
 app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
   try {
+    const sessionId = getSessionId(req);
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({ 
         success: false, 
@@ -310,10 +348,10 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
     }
 
     const calculatedRecords = parsedRows.map((row, idx) => calculateFinancials(row, idx + 1));
-    saveRecordsTransaction(calculatedRecords);
+    saveRecordsTransaction(sessionId, calculatedRecords);
 
-    const summary = getSummaryMetrics();
-    const records = getAllRecords();
+    const summary = getSummaryMetrics(sessionId);
+    const records = getAllRecords(sessionId);
 
     res.json({
       success: true,
@@ -333,6 +371,7 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
  */
 const handleLoadDemo = async (req, res) => {
   try {
+    const sessionId = getSessionId(req);
     const demoPath = path.join(__dirname, 'demo_sales.csv');
     if (!fs.existsSync(demoPath)) {
       return res.status(404).json({ success: false, message: 'Archivo demo_sales.csv no encontrado en el servidor.' });
@@ -342,10 +381,10 @@ const handleLoadDemo = async (req, res) => {
     const parsedRows = await parseCsvStream(fileBuffer);
     const calculatedRecords = parsedRows.map((row, idx) => calculateFinancials(row, idx + 1));
 
-    saveRecordsTransaction(calculatedRecords);
+    saveRecordsTransaction(sessionId, calculatedRecords);
 
-    const summary = getSummaryMetrics();
-    const records = getAllRecords();
+    const summary = getSummaryMetrics(sessionId);
+    const records = getAllRecords(sessionId);
 
     res.json({
       success: true,
@@ -368,7 +407,8 @@ app.get('/api/load-demo', handleLoadDemo);
  */
 app.get('/api/records', (req, res) => {
   try {
-    const records = getAllRecords();
+    const sessionId = getSessionId(req);
+    const records = getAllRecords(sessionId);
     res.json(records);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -380,7 +420,8 @@ app.get('/api/records', (req, res) => {
  */
 app.get('/api/summary', (req, res) => {
   try {
-    const summary = getSummaryMetrics();
+    const sessionId = getSessionId(req);
+    const summary = getSummaryMetrics(sessionId);
     res.json(summary);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -392,7 +433,8 @@ app.get('/api/summary', (req, res) => {
  */
 app.get('/api/export-csv', (req, res) => {
   try {
-    const records = getAllRecords();
+    const sessionId = getSessionId(req);
+    const records = getAllRecords(sessionId);
     if (records.length === 0) {
       return res.status(400).json({ success: false, message: 'No hay datos registrados para exportar.' });
     }
@@ -442,9 +484,12 @@ app.get('/api/export-csv', (req, res) => {
  */
 app.delete('/api/clear', (req, res) => {
   try {
-    db.run('DELETE FROM sales_records;');
+    const sessionId = getSessionId(req);
+    const stmt = db.prepare('DELETE FROM sales_records WHERE session_id = ?');
+    stmt.run([sessionId]);
+    stmt.free();
     persistDatabase();
-    res.json({ success: true, message: 'Todos los registros han sido eliminados con éxito.' });
+    res.json({ success: true, message: 'Tus registros han sido eliminados con éxito.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

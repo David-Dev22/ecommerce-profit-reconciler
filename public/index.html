@@ -278,6 +278,17 @@
     const detectedLang = (navigator.language && navigator.language.toLowerCase().startsWith('es')) ? 'es' : 'en';
     let currentLang = localStorage.getItem('app-lang') || detectedLang;
 
+    // Aislamiento de datos: Generar o recuperar session_id único por usuario
+    function getOrCreateSessionId() {
+      let sid = localStorage.getItem('app_session_id');
+      if (!sid) {
+        sid = 'usr_' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : (Math.random().toString(36).substring(2) + Date.now().toString(36)));
+        localStorage.setItem('app_session_id', sid);
+      }
+      return sid;
+    }
+    const currentSessionId = getOrCreateSessionId();
+
     // Formateador de moneda USD
     const currencyFormatter = new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -478,15 +489,19 @@
     searchInput.addEventListener('input', renderTable);
     filterLossOnly.addEventListener('change', renderTable);
 
-    // Cargar Datos Iniciales
+    // Cargar Datos Iniciales de la Sesión
     async function loadInitialData() {
       try {
-        const res = await fetch('/api/records');
+        const res = await fetch('/api/records', {
+          headers: { 'x-session-id': currentSessionId }
+        });
         if (res.ok) {
           const records = await res.json();
           if (records && records.length > 0) {
             currentRecords = records;
-            const sumRes = await fetch('/api/summary');
+            const sumRes = await fetch('/api/summary', {
+              headers: { 'x-session-id': currentSessionId }
+            });
             const summary = await sumRes.json();
             updateMetrics(summary);
             renderTable();
@@ -497,7 +512,7 @@
       }
     }
 
-    // Enviar y Procesar Archivo CSV
+    // Enviar y Procesar Archivo CSV para la Sesión
     async function processCsvFile(file) {
       const t = translations[currentLang];
       if (!file) {
@@ -514,6 +529,9 @@
       try {
         const response = await fetch('/api/upload-csv', {
           method: 'POST',
+          headers: {
+            'x-session-id': currentSessionId
+          },
           body: formData
         });
 
@@ -567,7 +585,7 @@
       }
     });
 
-    // Evento: Cargar Datos Demo
+    // Evento: Cargar Datos Demo para la Sesión
     btnDemo.addEventListener('click', async () => {
       const t = translations[currentLang];
       btnDemo.setAttribute('aria-busy', 'true');
@@ -575,7 +593,10 @@
 
       try {
         const response = await fetch('/api/load-demo', {
-          method: 'POST'
+          method: 'POST',
+          headers: {
+            'x-session-id': currentSessionId
+          }
         });
 
         const data = await response.json();
@@ -600,18 +621,23 @@
       window.location.href = '/api/template-csv';
     });
 
-    // Evento: Descargar Reporte CSV
+    // Evento: Descargar Reporte CSV de la Sesión
     btnExport.addEventListener('click', () => {
-      window.location.href = '/api/export-csv';
+      window.location.href = `/api/export-csv?sessionId=${encodeURIComponent(currentSessionId)}`;
     });
 
-    // Evento: Limpiar Datos
+    // Evento: Limpiar Datos de la Sesión
     btnClearData.addEventListener('click', async () => {
       const t = translations[currentLang];
       if (!confirm(t.confirmClear)) return;
 
       try {
-        const res = await fetch('/api/clear', { method: 'DELETE' });
+        const res = await fetch('/api/clear', {
+          method: 'DELETE',
+          headers: {
+            'x-session-id': currentSessionId
+          }
+        });
         const data = await res.json();
         if (data.success) {
           currentRecords = [];

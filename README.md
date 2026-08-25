@@ -23,6 +23,7 @@ Muchos vendedores en **Shopify, Stripe, MercadoLibre, Amazon o WooCommerce** cal
 
 ## ✨ Características Principales
 
+- 🔒 **Aislamiento Total Multi-Usuario (UUID):** Cada visitante cuenta con su propio entorno y sesión privada (`session_id`). Múltiples usuarios pueden conciliar simultáneamente sin ver ni sobreescribir los datos de otros.
 - 🌐 **Soporte Bilingüe (i18n):** Interfaz completa en Español e Inglés con detección automática del idioma del navegador y selector manual en barra de navegación.
 - ⚡ **Ingesta Ultra Rápida con Drag & Drop:** Procesamiento en *streaming* con `multer` y `csv-parser` mediante transacciones atómicas en SQLite.
 - 🧠 **Normalización Inteligente de Cabeceras:** Acepta automáticamente sinónimos en inglés y español exportados por Shopify, MercadoLibre, WooCommerce y Stripe (`precio`/`price`, `costo`/`cost`, `envio`/`shipping`, etc.).
@@ -36,7 +37,7 @@ Muchos vendedores en **Shopify, Stripe, MercadoLibre, Amazon o WooCommerce** cal
 - 🚨 **Detección Automática de Pérdidas (`is_loss`):** Resaltado visual instantáneo en rojo con badges semánticos (`⚠️ PÉRDIDA` vs `✓ RENTABLE`).
 - 🔍 **Buscador en Vivo y Filtro "Solo Pérdidas":** Aísla de inmediato las operaciones en saldo negativo sin navegar fila por fila.
 - 📈 **Tarjetas de KPIs Globales:** Facturación Total Bruta, Comisiones Totales Pagadas y Ganancia Neta Real consolidada.
-- 💾 **Persistencia SQLite con Modo WAL:** Cero sobrecarga de bases de datos externas pesadas; arranque inmediato y concurrencia optimizada con `better-sqlite3`.
+- 💾 **Persistencia WebAssembly SQLite (`sql.js`):** Motor SQLite compilado a WebAssembly para compatibilidad 100% universal en Linux, Render, Docker y Windows sin dependencias binarias en C++.
 - 📤 **Exportación de Reportes Conciliados:** Descarga en 1 clic del archivo `reporte_conciliado.csv` con todas las métricas calculadas.
 - 🌓 **Interfaz Semántica Ligera:** Construida con **Pico.css v2** vía CDN (cero CSS manual) con selector de tema Claro / Oscuro automático.
 - 🎯 **Modo Demo en 1 Clic:** Carga instantánea de un dataset de prueba con casos rentables y de pérdida deliberados para auditoría rápida.
@@ -48,7 +49,7 @@ Muchos vendedores en **Shopify, Stripe, MercadoLibre, Amazon o WooCommerce** cal
 | Capa | Tecnología | Propósito |
 | :--- | :--- | :--- |
 | **Backend** | Node.js + Express.js | API REST rápida y middleware de procesamiento. |
-| **Base de Datos** | SQLite (`better-sqlite3`) | Persistencia local en archivo con modo WAL de alta velocidad. |
+| **Base de Datos** | SQLite WebAssembly (`sql.js`) | Motor relacional universal con persistencia en archivo y aislamiento por sesión. |
 | **Ingesta de Datos** | `multer` + `csv-parser` | Procesamiento seguro en memoria y streaming de archivos CSV. |
 | **Exportación** | `json2csv` | Generación dinámica de reportes descargables. |
 | **Frontend** | HTML5 + Pico.css v2 + Vanilla JS | UI semántica, minimalista, accesible y reactiva sin frameworks pesados. |
