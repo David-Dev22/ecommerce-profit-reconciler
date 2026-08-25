@@ -3,6 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const csv = require('csv-parser');
 const initSqlJs = require('sql.js');
+const ExcelJS = require('exceljs');
 const { Readable } = require('stream');
 const fs = require('fs');
 const path = require('path');
@@ -267,7 +268,6 @@ function getSummaryMetrics(sessionId) {
 function saveRecordsTransaction(sessionId, records) {
   db.run('BEGIN TRANSACTION;');
   
-  // Clear only current session records
   const delStmt = db.prepare('DELETE FROM sales_records WHERE session_id = ?');
   delStmt.run([sessionId]);
   delStmt.free();
@@ -301,21 +301,208 @@ function saveRecordsTransaction(sessionId, records) {
   persistDatabase();
 }
 
+/**
+ * Generates an Excel (.xlsx) file buffer with colors, styled headers, gridlines and currency formats
+ */
+async function generateStyledExcelReport(records, summary) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Conciliador de Ganancias E-commerce';
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet('Reporte Conciliado', {
+    views: [{ showGridLines: true }]
+  });
+
+  // Define Columns
+  worksheet.columns = [
+    { header: 'Order ID', key: 'order_id', width: 16 },
+    { header: 'Producto', key: 'product_name', width: 30 },
+    { header: 'Precio Unit.', key: 'price', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'Cantidad', key: 'quantity', width: 10, style: { alignment: { horizontal: 'center' } } },
+    { header: 'Costo Prod.', key: 'product_cost', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'Costo Envío', key: 'shipping_cost', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'Ingreso Bruto', key: 'gross_income', width: 16, style: { numFmt: '$#,##0.00' } },
+    { header: 'Comisión Pasarela', key: 'platform_fee', width: 18, style: { numFmt: '$#,##0.00' } },
+    { header: 'Costo Total', key: 'total_cost', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'Ganancia Neta', key: 'net_profit', width: 16, style: { numFmt: '$#,##0.00' } },
+    { header: 'Margen %', key: 'net_margin', width: 12, style: { numFmt: '0.0"%"' } },
+    { header: 'Estado', key: 'status', width: 16, style: { alignment: { horizontal: 'center' } } }
+  ];
+
+  // Header Styling (Navy Blue & White Text)
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 28;
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1E293B' } // Slate 800
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 11
+    };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      bottom: { style: 'medium', color: { argb: 'FF0284C7' } },
+      left: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      right: { style: 'thin', color: { argb: 'FF94A3B8' } }
+    };
+  });
+
+  // Add Data Rows with Gridlines and Green / Red highlights
+  records.forEach((r) => {
+    const isLoss = r.is_loss === 1 || r.is_loss === true;
+    const row = worksheet.addRow({
+      order_id: r.order_id,
+      product_name: r.product_name,
+      price: r.price,
+      quantity: r.quantity,
+      product_cost: r.product_cost,
+      shipping_cost: r.shipping_cost,
+      gross_income: r.gross_income,
+      platform_fee: r.platform_fee,
+      total_cost: r.total_cost,
+      net_profit: r.net_profit,
+      net_margin: r.net_margin,
+      status: isLoss ? '⚠️ PÉRDIDA' : '✓ RENTABLE'
+    });
+
+    row.height = 22;
+
+    row.eachCell((cell, colNumber) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+      cell.alignment = cell.alignment || { vertical: 'middle' };
+
+      // Highlight Net Profit, Margin % and Status (cols 10, 11, 12)
+      if (colNumber === 10 || colNumber === 11 || colNumber === 12) {
+        if (isLoss) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFEE2E2' } // Light Red
+          };
+          cell.font = {
+            bold: true,
+            color: { argb: 'FF991B1B' } // Dark Red
+          };
+        } else {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFDCFCE7' } // Light Green
+          };
+          cell.font = {
+            bold: true,
+            color: { argb: 'FF166534' } // Dark Green
+          };
+        }
+      }
+    });
+  });
+
+  return await workbook.xlsx.writeBuffer();
+}
+
+/**
+ * Generates an Excel (.xlsx) template buffer
+ */
+async function generateStyledExcelTemplate() {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Plantilla Ventas', {
+    views: [{ showGridLines: true }]
+  });
+
+  worksheet.columns = [
+    { header: 'order_id', key: 'order_id', width: 16 },
+    { header: 'product_name', key: 'product_name', width: 28 },
+    { header: 'price', key: 'price', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'quantity', key: 'quantity', width: 12, style: { alignment: { horizontal: 'center' } } },
+    { header: 'product_cost', key: 'product_cost', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'shipping_cost', key: 'shipping_cost', width: 14, style: { numFmt: '$#,##0.00' } }
+  ];
+
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 26;
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF0284C7' } // Sky Blue 600
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' }
+    };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'medium', color: { argb: 'FF0369A1' } },
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+    };
+  });
+
+  const sampleRows = [
+    { order_id: 'ORD-1001', product_name: 'Ejemplo Producto Rentable', price: 49.99, quantity: 2, product_cost: 30.00, shipping_cost: 5.50 },
+    { order_id: 'ORD-1002', product_name: 'Ejemplo Producto en Pérdida', price: 4.50, quantity: 1, product_cost: 5.00, shipping_cost: 2.50 }
+  ];
+
+  sampleRows.forEach((r) => {
+    const row = worksheet.addRow(r);
+    row.height = 20;
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+      };
+    });
+  });
+
+  return await workbook.xlsx.writeBuffer();
+}
+
 // -------------------------------------------------------------
 // REST API Endpoints
 // -------------------------------------------------------------
 
 /**
  * GET /api/template-csv
+ * CSV template with UTF-8 BOM so Excel opens it in distinct columns automatically
  */
 app.get('/api/template-csv', (req, res) => {
-  const templateCsv = `order_id,product_name,price,quantity,product_cost,shipping_cost
+  const templateCsv = `\uFEFForder_id,product_name,price,quantity,product_cost,shipping_cost
 ORD-1001,Ejemplo Producto Rentable,49.99,2,30.00,5.50
 ORD-1002,Ejemplo Producto en Pérdida,4.50,1,5.00,2.50`;
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="plantilla_ventas.csv"');
-  return res.status(200).send(templateCsv);
+  return res.status(200).send(Buffer.from(templateCsv, 'utf-8'));
+});
+
+/**
+ * GET /api/template-excel
+ * Excel (.xlsx) template with colors, styled headers and gridlines
+ */
+app.get('/api/template-excel', async (req, res) => {
+  try {
+    const buffer = await generateStyledExcelTemplate();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="plantilla_ventas.xlsx"');
+    return res.status(200).send(buffer);
+  } catch (error) {
+    console.error('Error generando plantilla Excel:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -430,6 +617,7 @@ app.get('/api/summary', (req, res) => {
 
 /**
  * GET /api/export-csv
+ * CSV export with UTF-8 BOM for clean automatic column separation in Excel
  */
 app.get('/api/export-csv', (req, res) => {
   try {
@@ -470,12 +658,38 @@ app.get('/api/export-csv', (req, res) => {
       csvOutput = [headers, ...rows].join('\n');
     }
 
+    // UTF-8 BOM ensures Excel cleanly splits columns instead of grouping everything into Column A
+    const csvWithBom = '\uFEFF' + csvOutput;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="reporte_conciliado.csv"');
-    return res.status(200).send(csvOutput);
+    return res.status(200).send(Buffer.from(csvWithBom, 'utf-8'));
   } catch (error) {
     console.error('Error en /api/export-csv:', error);
     res.status(500).json({ success: false, message: 'Error al exportar CSV: ' + error.message });
+  }
+});
+
+/**
+ * GET /api/export-excel
+ * Excel (.xlsx) export with styled headers, borders, colored profit/loss badges & currency formatting
+ */
+app.get('/api/export-excel', async (req, res) => {
+  try {
+    const sessionId = getSessionId(req);
+    const records = getAllRecords(sessionId);
+    if (records.length === 0) {
+      return res.status(400).json({ success: false, message: 'No hay datos registrados para exportar.' });
+    }
+
+    const summary = getSummaryMetrics(sessionId);
+    const buffer = await generateStyledExcelReport(records, summary);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="reporte_conciliado.xlsx"');
+    return res.status(200).send(buffer);
+  } catch (error) {
+    console.error('Error en /api/export-excel:', error);
+    res.status(500).json({ success: false, message: 'Error al exportar Excel: ' + error.message });
   }
 });
 

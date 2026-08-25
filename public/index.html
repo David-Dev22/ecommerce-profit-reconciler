@@ -77,8 +77,9 @@
       <article id="drop-zone">
         <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <strong id="panel-title">⚙️ Panel de Control y Procesamiento</strong>
-          <div>
-            <button type="button" class="outline secondary" id="btn-download-template" style="margin: 0; padding: 4px 10px; font-size: 0.85rem;">📄 Descargar Plantilla CSV</button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="outline secondary" id="btn-download-template-csv" style="margin: 0; padding: 4px 10px; font-size: 0.85rem;">📄 Plantilla CSV</button>
+            <button type="button" class="outline secondary" id="btn-download-template-excel" style="margin: 0; padding: 4px 10px; font-size: 0.85rem;">📊 Plantilla Excel (.xlsx)</button>
             <button type="button" class="outline contrast" id="btn-clear-data" style="margin: 0; padding: 4px 10px; font-size: 0.85rem;">🗑️ Limpiar Datos</button>
           </div>
         </header>
@@ -91,10 +92,11 @@
                 <input type="file" id="csv-file" accept=".csv" required>
               </label>
             </div>
-            <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap;">
               <button type="submit" id="btn-upload">📤 Procesar CSV</button>
-              <button type="button" class="secondary" id="btn-load-demo">⚡ Cargar Datos Demo</button>
-              <button type="button" class="contrast outline" id="btn-export-csv">📥 Descargar Reporte</button>
+              <button type="button" class="secondary" id="btn-load-demo">⚡ Cargar Demo</button>
+              <button type="button" class="contrast" id="btn-export-excel" style="background-color: #059669; border-color: #059669; color: white;">📊 Descargar Excel</button>
+              <button type="button" class="contrast outline" id="btn-export-csv">📄 Descargar CSV</button>
             </div>
           </div>
         </form>
@@ -186,12 +188,14 @@
         transProcSuffix: 'transacciones procesadas',
         lossCountText: 'operaciones en pérdida',
         panelTitle: '⚙️ Panel de Control y Procesamiento',
-        btnDownloadTemplate: '📄 Descargar Plantilla CSV',
+        btnDownloadTemplateCsv: '📄 Plantilla CSV',
+        btnDownloadTemplateExcel: '📊 Plantilla Excel (.xlsx)',
         btnClearData: '🗑️ Limpiar Datos',
         fileInputLabel: 'Seleccionar o Arrastrar Archivo CSV de Ventas',
         btnUpload: '📤 Procesar CSV',
-        btnLoadDemo: '⚡ Cargar Datos Demo',
-        btnExport: '📥 Descargar Reporte',
+        btnLoadDemo: '⚡ Cargar Demo',
+        btnExportExcel: '📊 Descargar Excel',
+        btnExportCsv: '📄 Descargar CSV',
         guideSummary: '<strong>ℹ️ Guía de formato y columnas esperadas</strong>',
         guideIntro: 'Puedes subir archivos CSV con cabeceras en español o inglés. Las columnas recomendadas son:',
         guideListHtml: `
@@ -235,12 +239,14 @@
         transProcSuffix: 'processed transactions',
         lossCountText: 'unprofitable loss sales',
         panelTitle: '⚙️ Control & Processing Panel',
-        btnDownloadTemplate: '📄 Download CSV Template',
+        btnDownloadTemplateCsv: '📄 CSV Template',
+        btnDownloadTemplateExcel: '📊 Excel Template (.xlsx)',
         btnClearData: '🗑️ Clear Data',
         fileInputLabel: 'Select or Drag & Drop Sales CSV File',
         btnUpload: '📤 Process CSV',
-        btnLoadDemo: '⚡ Load Demo Data',
-        btnExport: '📥 Download Report',
+        btnLoadDemo: '⚡ Load Demo',
+        btnExportExcel: '📊 Download Excel',
+        btnExportCsv: '📄 Download CSV',
         guideSummary: '<strong>ℹ️ CSV Format & Expected Columns Guide</strong>',
         guideIntro: 'You can upload CSV files with headers in English or Spanish. Recommended columns are:',
         guideListHtml: `
@@ -313,8 +319,10 @@
     const csvFileInput = document.getElementById('csv-file');
     const btnUpload = document.getElementById('btn-upload');
     const btnDemo = document.getElementById('btn-load-demo');
-    const btnExport = document.getElementById('btn-export-csv');
-    const btnDownloadTemplate = document.getElementById('btn-download-template');
+    const btnExportExcel = document.getElementById('btn-export-excel');
+    const btnExportCsv = document.getElementById('btn-export-csv');
+    const btnDownloadTemplateCsv = document.getElementById('btn-download-template-csv');
+    const btnDownloadTemplateExcel = document.getElementById('btn-download-template-excel');
     const btnClearData = document.getElementById('btn-clear-data');
     const btnTheme = document.getElementById('btn-theme-toggle');
     const btnLang = document.getElementById('btn-lang-toggle');
@@ -337,12 +345,14 @@
       document.getElementById('kpi-fee-formula').innerHTML = t.kpiFeeFormula;
       document.getElementById('kpi-net-title').textContent = t.kpiNetTitle;
       document.getElementById('panel-title').textContent = t.panelTitle;
-      btnDownloadTemplate.textContent = t.btnDownloadTemplate;
+      btnDownloadTemplateCsv.textContent = t.btnDownloadTemplateCsv;
+      btnDownloadTemplateExcel.textContent = t.btnDownloadTemplateExcel;
       btnClearData.textContent = t.btnClearData;
       document.getElementById('file-input-label').childNodes[0].textContent = t.fileInputLabel + ' ';
       btnUpload.textContent = t.btnUpload;
       btnDemo.textContent = t.btnLoadDemo;
-      btnExport.textContent = t.btnExport;
+      btnExportExcel.textContent = t.btnExportExcel;
+      btnExportCsv.textContent = t.btnExportCsv;
       document.getElementById('guide-summary').innerHTML = t.guideSummary;
       document.getElementById('guide-intro').textContent = t.guideIntro;
       document.getElementById('guide-list').innerHTML = t.guideListHtml;
@@ -616,13 +626,23 @@
       }
     });
 
-    // Evento: Descargar Plantilla CSV
-    btnDownloadTemplate.addEventListener('click', () => {
+    // Evento: Descargar Plantilla CSV (con UTF-8 BOM para separación automática de columnas en Excel)
+    btnDownloadTemplateCsv.addEventListener('click', () => {
       window.location.href = '/api/template-csv';
     });
 
-    // Evento: Descargar Reporte CSV de la Sesión
-    btnExport.addEventListener('click', () => {
+    // Evento: Descargar Plantilla Excel (.xlsx con encabezados estilizados y cuadrícula)
+    btnDownloadTemplateExcel.addEventListener('click', () => {
+      window.location.href = '/api/template-excel';
+    });
+
+    // Evento: Descargar Reporte Excel (.xlsx con cuadrícula, formato de moneda y colores verde/rojo)
+    btnExportExcel.addEventListener('click', () => {
+      window.location.href = `/api/export-excel?sessionId=${encodeURIComponent(currentSessionId)}`;
+    });
+
+    // Evento: Descargar Reporte CSV (con UTF-8 BOM)
+    btnExportCsv.addEventListener('click', () => {
       window.location.href = `/api/export-csv?sessionId=${encodeURIComponent(currentSessionId)}`;
     });
 
