@@ -1,130 +1,124 @@
-# 📊 Conciliador de Ganancias E-commerce
+# 📊 E-Commerce Profit Reconciler
 
-> **Herramienta de conciliación financiera de alto rendimiento para identificar pérdidas ocultas, comisiones de pasarela y márgenes netos reales por producto.**
+> **High-performance financial reconciliation tool designed to uncover hidden losses, payment gateway fees, and real net margins per item.**
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7.svg?logo=render)](https://conciliador-de-ganancias.onrender.com)
 [![Node.js Version](https://img.shields.io/badge/Node.js-v20%2B-brightgreen.svg?logo=node.js)](https://nodejs.org/)
-[![SQLite](https://img.shields.io/badge/SQLite-WAL%20Mode-blue.svg?logo=sqlite)](https://www.sqlite.org/)
-[![Pico.css v2](https://img.shields.io/badge/UI-Pico.css%20v2-pink.svg)](https://picocss.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-WebAssembly%20(sql.js)-blue.svg?logo=sqlite)](https://www.sqlite.org/)
+[![UI](https://img.shields.io/badge/UI-Pico.css%20v2-pink.svg)](https://picocss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Deploy on Render](https://img.shields.io/badge/Render-Live%20Demo-46E3B7.svg?logo=render)](https://render.com)
 
 ---
 
-## 💡 El Problema de Negocio
+## 💡 Overview
 
-Muchos vendedores en **Shopify, Stripe, MercadoLibre, Amazon o WooCommerce** calculan sus ganancias restando únicamente el costo de adquisición del producto al precio de venta. Sin embargo, ignoran factores críticos:
-- **Comisiones fijas y porcentuales de pasarelas de pago** (ej. $2.9\% + \$0.30$ USD por transacción).
-- **Costos de envío y logística** asumidos en ventas de bajo valor unitario.
-- **Micro-pérdidas acumulativas:** Transacciones donde el margen parece positivo en papel, pero termina en **saldo negativo** tras deducir la tarifa fija de la pasarela.
+Many sellers on **Shopify, Stripe, MercadoLibre, Amazon, or WooCommerce** calculate profits simply by subtracting product acquisition cost from sales price. However, they frequently overlook critical factors:
+- **Fixed & percentage payment gateway fees** (e.g., $2.9\% + \$0.30$ USD per transaction).
+- **Shipping & fulfillment expenses** assumed on lower-ticket products.
+- **Cumulative micro-losses:** Orders where margin looks positive on paper, but ends up in the **red** once the fixed fee is deducted.
 
-**Conciliador de Ganancias** resuelve esto ingiriendo tus reportes de ventas CSV, aplicando conciliación matemática estricta y alertando inmediatamente sobre cada transacción en pérdida.
+**E-Commerce Profit Reconciler** ingests sales CSV reports, performs strict mathematical reconciliation, isolates private sessions per visitor, and immediately flags every loss-making transaction.
 
----
-
-## ✨ Características Principales
-
-- 🔒 **Aislamiento Total Multi-Usuario (UUID):** Cada visitante cuenta con su propio entorno y sesión privada (`session_id`). Múltiples usuarios pueden conciliar simultáneamente sin ver ni sobreescribir los datos de otros.
-- 🌐 **Soporte Bilingüe (i18n):** Interfaz completa en Español e Inglés con detección automática del idioma del navegador y selector manual en barra de navegación.
-- ⚡ **Ingesta Ultra Rápida con Drag & Drop:** Procesamiento en *streaming* con `multer` y `csv-parser` mediante transacciones atómicas en SQLite.
-- 🧠 **Normalización Inteligente de Cabeceras:** Acepta automáticamente sinónimos en inglés y español exportados por Shopify, MercadoLibre, WooCommerce y Stripe (`precio`/`price`, `costo`/`cost`, `envio`/`shipping`, etc.).
-- 📄 **Plantilla / Molde CSV en 1 Clic:** Endpoint `/api/template-csv` y botón interactivo para descargar la plantilla con formato validado.
-- 🧮 **Motor Matemático Financiero Oficial:**
-  - $\text{Ingreso Bruto} = \text{Precio} \times \text{Cantidad}$
-  - $\text{Comisión Pasarela} = (\text{Ingreso Bruto} \times 0.029) + 0.30$
-  - $\text{Costo Total} = \text{Costo Producto} + \text{Costo Envío}$
-  - $\text{Ganancia Neta} = \text{Ingreso Bruto} - \text{Comisión} - \text{Costo Total}$
-  - $\text{Margen Neto (\%)} = \left(\frac{\text{Ganancia Neta}}{\text{Ingreso Bruto}}\right) \times 100$
-- 🚨 **Detección Automática de Pérdidas (`is_loss`):** Resaltado visual instantáneo en rojo con badges semánticos (`⚠️ PÉRDIDA` vs `✓ RENTABLE`).
-- 🔍 **Buscador en Vivo y Filtro "Solo Pérdidas":** Aísla de inmediato las operaciones en saldo negativo sin navegar fila por fila.
-- 📈 **Tarjetas de KPIs Globales:** Facturación Total Bruta, Comisiones Totales Pagadas y Ganancia Neta Real consolidada.
-- 💾 **Persistencia WebAssembly SQLite (`sql.js`):** Motor SQLite compilado a WebAssembly para compatibilidad 100% universal en Linux, Render, Docker y Windows sin dependencias binarias en C++.
-- 📤 **Exportación de Reportes Conciliados:** Descarga en 1 clic del archivo `reporte_conciliado.csv` con todas las métricas calculadas.
-- 🌓 **Interfaz Semántica Ligera:** Construida con **Pico.css v2** vía CDN (cero CSS manual) con selector de tema Claro / Oscuro automático.
-- 🎯 **Modo Demo en 1 Clic:** Carga instantánea de un dataset de prueba con casos rentables y de pérdida deliberados para auditoría rápida.
+🚀 **Try the live tool here:** [https://conciliador-de-ganancias.onrender.com](https://conciliador-de-ganancias.onrender.com)
 
 ---
 
-## 🛠️ Stack Tecnológico
+## ✨ Key Features
 
-| Capa | Tecnología | Propósito |
+- 🔒 **Full Multi-User Isolation (UUID Sessions):** Each visitor receives a dedicated private session (`session_id`). Multiple users can reconcile simultaneously without data crossover or overwriting.
+- 🌐 **Bilingual Support (i18n):** Full interface in English and Spanish with auto-detection of browser language and manual switcher in the navigation bar.
+- 📊 **Native Excel Export (.xlsx) & UTF-8 BOM CSV:**
+  - Styled Excel spreadsheets featuring custom navy headers, cell gridlines, currency formatting (`$#,##0.00`), and soft green/red conditional highlighting.
+  - CSV files encoded with UTF-8 BOM (`\uFEFF`) ensuring columns open separated cleanly in Excel on Windows/Mac without grouping into a single column.
+  - Dynamically localized filenames (`reconciled_sales_report.xlsx` / `reporte_conciliado.xlsx`).
+- ⚡ **Lightning-Fast Streaming Ingestion:** Memory-efficient stream parsing using `multer` and `csv-parser` with atomic SQLite transactions.
+- 🧠 **Smart Header Normalization:** Automatically recognizes common column aliases exported by Shopify, MercadoLibre, WooCommerce, and Stripe in both English and Spanish (`price`/`precio`, `cost`/`costo`, `shipping`/`envio`, `quantity`/`cantidad`).
+- 📄 **1-Click CSV & Excel Templates:** Downloadable templates pre-formatted to match expected structures.
+- 🧮 **Standard Financial Calculation Engine:**
+  - $\text{Gross Revenue} = \text{Price} \times \text{Quantity}$
+  - $\text{Platform Fee} = (\text{Gross Revenue} \times 0.029) + 0.30$
+  - $\text{Total Cost} = \text{Product Cost} + \text{Shipping Cost}$
+  - $\text{Net Profit} = \text{Gross Revenue} - \text{Platform Fee} - \text{Total Cost}$
+  - $\text{Net Margin (\%)} = \left(\frac{\text{Net Profit}}{\text{Gross Revenue}}\right) \times 100$
+- 🚨 **Automated Loss Detection (`is_loss`):** Instant visual alerts with colored status badges (`⚠️ LOSS` vs `✓ PROFITABLE`).
+- 🔍 **Live Search & "Losses Only" Filter:** Filter negative-margin items instantly without scrolling through hundreds of rows.
+- 📈 **Real-Time KPI Dashboard:** Total Gross Revenue, Total Platform Fees Paid, and Real Consolidated Net Profit.
+- 💾 **WebAssembly SQLite Engine (`sql.js`):** Pure WebAssembly relational database engine for 100% universal compatibility across Linux, Render, Docker, and Windows without native C++ compilation issues.
+- 🌓 **Semantic Responsive UI:** Built with **Pico.css v2** with automatic Dark / Light mode switching.
+- 🎯 **1-Click Demo Mode:** Instant sample dataset loading containing both profitable and deliberate loss scenarios for quick auditing.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Backend** | Node.js + Express.js | API REST rápida y middleware de procesamiento. |
-| **Base de Datos** | SQLite WebAssembly (`sql.js`) | Motor relacional universal con persistencia en archivo y aislamiento por sesión. |
-| **Ingesta de Datos** | `multer` + `csv-parser` | Procesamiento seguro en memoria y streaming de archivos CSV. |
-| **Exportación** | `json2csv` | Generación dinámica de reportes descargables. |
-| **Frontend** | HTML5 + Pico.css v2 + Vanilla JS | UI semántica, minimalista, accesible y reactiva sin frameworks pesados. |
-| **Despliegue** | Render.com | Web Service con configuración `render.yaml` lista para producción. |
+| **Backend** | Node.js + Express.js | Fast REST API and processing middleware. |
+| **Database** | SQLite WebAssembly (`sql.js`) | Universal relational engine with file persistence and session-level isolation. |
+| **Data Ingestion** | `multer` + `csv-parser` | In-memory stream processing of uploaded CSV files. |
+| **Export Engines** | `exceljs` + `json2csv` | Generating formatted `.xlsx` workbooks and UTF-8 BOM `.csv` exports. |
+| **Frontend** | HTML5 + Pico.css v2 + Vanilla JS | Semantic, lightweight, accessible, and reactive UI without heavy dependencies. |
 
 ---
 
-## 🚀 Inicio Rápido (Instalación Local)
+## 📡 REST API Specification
 
-### Requisitos Previos
-- **Node.js:** Versión 18.0.0 o superior instalada.
-- **npm:** Gestor de paquetes incluido con Node.js.
+| Method | Endpoint | Description | Query / Headers |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/template-csv` | Download CSV template | `lang=en` or `lang=es` |
+| `GET` | `/api/template-excel` | Download styled Excel (.xlsx) template | `lang=en` or `lang=es` |
+| `POST` | `/api/upload-csv` | Upload and reconcile a CSV file | `x-session-id`, `FormData` with `file` |
+| `POST` / `GET` | `/api/load-demo` | Load demo dataset for the active session | `x-session-id` |
+| `GET` | `/api/records` | Retrieve all processed records for the session | `x-session-id` |
+| `GET` | `/api/summary` | Retrieve consolidated KPIs and loss count | `x-session-id` |
+| `GET` | `/api/export-excel` | Download styled Excel report (.xlsx) | `sessionId`, `lang` |
+| `GET` | `/api/export-csv` | Download CSV report with UTF-8 BOM | `sessionId`, `lang` |
+| `DELETE` | `/api/clear` | Clear session records | `x-session-id` |
 
-### 1. Clonar o descargar el repositorio
+---
+
+## 🚀 Local Installation
+
+### Prerequisites
+- **Node.js:** Version 18.0.0 or higher.
+- **npm:** Package manager included with Node.js.
+
+### 1. Clone the repository
 ```bash
 git clone https://github.com/David-Dev22/conciliador-de-ganancias.git
 cd conciliador-de-ganancias
 ```
 
-### 2. Instalar dependencias
+### 2. Install dependencies
 ```bash
 npm install
 ```
 
-### 3. Ejecutar las pruebas automatizadas
+### 3. Run automated tests
 ```bash
 npm test
 ```
-*Valida la suite matemática unitaria y las pruebas de integración End-to-End de todos los endpoints.*
+*Executes unit math tests, header normalization tests, end-to-end API tests, and concurrent multi-user isolation validation.*
 
-### 4. Iniciar la aplicación
+### 4. Start the server
 ```bash
 npm start
 ```
-Abre en tu navegador: **`http://localhost:3000`**
+Open your browser at **`http://localhost:3000`**.
 
 ---
 
-## 📡 Especificación de la API REST
+## 🤝 Custom Integrations & Automation Scripts
 
-| Método | Endpoint | Descripción | Parámetros / Payload |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/template-csv` | Descarga el archivo de plantilla `plantilla_ventas.csv` | Ninguno |
-| `POST` | `/api/upload-csv` | Sube y concilia un archivo CSV | FormData con campo `file` |
-| `POST` / `GET` | `/api/load-demo` | Carga el dataset de prueba `demo_sales.csv` | Ninguno |
-| `GET` | `/api/records` | Lista todas las transacciones procesadas | Ninguno |
-| `GET` | `/api/summary` | Obtiene los 3 KPIs consolidados y conteo de pérdidas | Ninguno |
-| `GET` | `/api/export-csv` | Descarga el archivo `reporte_conciliado.csv` | Ninguno |
-| `DELETE` | `/api/clear` | Limpia los registros para reiniciar pruebas | Ninguno |
+Do you run e-commerce operations on **Shopify, MercadoLibre, Amazon, Stripe, or custom databases** and need custom tooling for reconciliation, automated invoicing, scraping, or margin auditing?
+
+I build **tailored micro-tools, backend APIs, scrapers, and automation scripts** for e-commerce workflows.
+
+- 📨 **Reddit:** [u/Dear_David_2026](https://reddit.com/user/Dear_David_2026)
+- 📧 **Email:** `maildavid22@proton.me` *(or via direct GitHub message)*
 
 ---
 
-## 🌐 Despliegue en Render.com (Gratuito)
+## 📄 License
 
-El repositorio incluye el archivo Infrastructure-as-Code [`render.yaml`](./render.yaml):
-
-1. Sube este repositorio a tu cuenta de **GitHub**.
-2. Ingresa a [Render.com](https://render.com/) y haz clic en **New +** -> **Blueprint**.
-3. Conecta tu repositorio de GitHub.
-4. Render detectará automáticamente `render.yaml` y desplegará el servicio web en minutos.
-
----
-
-## 🤝 ¿Necesitas Scripts Personalizados o Integraciones?
-
-¿Manejas flujos de venta en **Shopify, MercadoLibre, Amazon, Stripe o bases de datos custom** y necesitas automatizar la conciliación de márgenes, impuestos o facturación?
-
-Desarrollo **micro-herramientas, APIs a medida, scrapers y bots de automatización** para e-commerce.
-
-- 💬 **Discord:** `@david_dev22`
-- 📨 **Reddit:** `u/david-dev22`
-- 📧 **Email:** `maildavid22@proton.me` *(o vía mensaje directo en GitHub)*
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
