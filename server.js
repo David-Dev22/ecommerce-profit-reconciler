@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const csv = require('csv-parser');
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
 const { Readable } = require('stream');
 const fs = require('fs');
 const path = require('path');
@@ -28,30 +28,55 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-// SQLite Database Setup
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'database.db');
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+// SQLite WebAssembly Database Instance
+let SQL;
+let db;
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
 
-// Initialize sales_records Table
-db.exec(`
-  CREATE TABLE IF NOT EXISTS sales_records (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id TEXT NOT NULL,
-    product_name TEXT DEFAULT 'Sin Nombre',
-    price REAL NOT NULL,
-    quantity INTEGER NOT NULL,
-    product_cost REAL NOT NULL,
-    shipping_cost REAL NOT NULL,
-    gross_income REAL NOT NULL,
-    platform_fee REAL NOT NULL,
-    total_cost REAL NOT NULL,
-    net_profit REAL NOT NULL,
-    net_margin REAL NOT NULL,
-    is_loss INTEGER NOT NULL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
+async function initDatabase() {
+  if (!SQL) {
+    SQL = await initSqlJs();
+  }
+  if (fs.existsSync(dbPath)) {
+    try {
+      const fileBuffer = fs.readFileSync(dbPath);
+      db = new SQL.Database(fileBuffer);
+    } catch (e) {
+      db = new SQL.Database();
+    }
+  } else {
+    db = new SQL.Database();
+  }
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sales_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id TEXT NOT NULL,
+      product_name TEXT DEFAULT 'Sin Nombre',
+      price REAL NOT NULL,
+      quantity INTEGER NOT NULL,
+      product_cost REAL NOT NULL,
+      shipping_cost REAL NOT NULL,
+      gross_income REAL NOT NULL,
+      platform_fee REAL NOT NULL,
+      total_cost REAL NOT NULL,
+      net_profit REAL NOT NULL,
+      net_margin REAL NOT NULL,
+      is_loss INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+}
+
+function persistDatabase() {
+  if (!db) return;
+  try {
+    const data = db.export();
+    fs.writeFileSync(dbPath, Buffer.from(data));
+  } catch (err) {
+    console.error('Error persistiendo base de datos:', err);
+  }
+}
 
 /**
  * Normalizes synonyms for CSV headers in Spanish and English
@@ -60,7 +85,6 @@ function normalizeRow(rawRow) {
   const normalized = {};
   for (const [key, val] of Object.entries(rawRow)) {
     if (!key) continue;
-    // Clean key: lowercase, trim, remove accents and special chars
     const cleanKey = key
       .trim()
       .toLowerCase()
@@ -96,7 +120,6 @@ function calculateFinancials(rawRow, index = 1) {
   const order_id = row.order_id ? String(row.order_id).trim() : `ORD-${String(index).padStart(4, '0')}`;
   const product_name = row.product_name ? String(row.product_name).trim() : 'Producto General';
   
-  // Clean numeric values (replace commas, currency signs, etc.)
   const cleanNum = (v) => {
     if (typeof v === 'number') return v;
     if (!v) return 0;
@@ -163,10 +186,26 @@ function parseCsvStream(buffer) {
 }
 
 /**
- * Helper to get summary statistics from database
+ * Helper to get all records from sql.js
+ */
+function getAllRecords() {
+  const res = db.exec('SELECT * FROM sales_records ORDER BY id ASC');
+  if (!res || res.length === 0) return [];
+  const columns = res[0].columns;
+  return res[0].values.map(row => {
+    const obj = {};
+    columns.forEach((col, idx) => {
+      obj[col] = row[idx];
+    });
+    return obj;
+  });
+}
+
+/**
+ * Helper to get summary statistics
  */
 function getSummaryMetrics() {
-  const summary = db.prepare(`
+  const res = db.exec(`
     SELECT 
       COALESCE(SUM(gross_income), 0) AS gross_total,
       COALESCE(SUM(platform_fee), 0) AS fee_total,
@@ -174,14 +213,19 @@ function getSummaryMetrics() {
       COUNT(*) AS total_records,
       COALESCE(SUM(is_loss), 0) AS loss_count
     FROM sales_records
-  `).get();
+  `);
 
+  if (!res || res.length === 0 || !res[0].values || res[0].values.length === 0) {
+    return { gross_total: 0, fee_total: 0, net_total: 0, total_records: 0, loss_count: 0 };
+  }
+
+  const [gross_total, fee_total, net_total, total_records, loss_count] = res[0].values[0];
   return {
-    gross_total: Math.round((summary.gross_total + Number.EPSILON) * 100) / 100,
-    fee_total: Math.round((summary.fee_total + Number.EPSILON) * 100) / 100,
-    net_total: Math.round((summary.net_total + Number.EPSILON) * 100) / 100,
-    total_records: summary.total_records,
-    loss_count: summary.loss_count
+    gross_total: Math.round(((gross_total || 0) + Number.EPSILON) * 100) / 100,
+    fee_total: Math.round(((fee_total || 0) + Number.EPSILON) * 100) / 100,
+    net_total: Math.round(((net_total || 0) + Number.EPSILON) * 100) / 100,
+    total_records: total_records || 0,
+    loss_count: loss_count || 0
   };
 }
 
@@ -189,26 +233,35 @@ function getSummaryMetrics() {
  * Helper to save processed records in a database transaction
  */
 function saveRecordsTransaction(records) {
-  const insertStmt = db.prepare(`
+  db.run('BEGIN TRANSACTION;');
+  db.run('DELETE FROM sales_records;');
+
+  const stmt = db.prepare(`
     INSERT INTO sales_records (
       order_id, product_name, price, quantity, product_cost, shipping_cost,
       gross_income, platform_fee, total_cost, net_profit, net_margin, is_loss
-    ) VALUES (
-      @order_id, @product_name, @price, @quantity, @product_cost, @shipping_cost,
-      @gross_income, @platform_fee, @total_cost, @net_profit, @net_margin, @is_loss
-    )
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const insertMany = db.transaction((items) => {
-    // Clean old records
-    db.prepare('DELETE FROM sales_records').run();
-    // Insert new calculated records
-    for (const item of items) {
-      insertStmt.run(item);
-    }
-  });
-
-  insertMany(records);
+  for (const item of records) {
+    stmt.run([
+      item.order_id,
+      item.product_name,
+      item.price,
+      item.quantity,
+      item.product_cost,
+      item.shipping_cost,
+      item.gross_income,
+      item.platform_fee,
+      item.total_cost,
+      item.net_profit,
+      item.net_margin,
+      item.is_loss
+    ]);
+  }
+  stmt.free();
+  db.run('COMMIT;');
+  persistDatabase();
 }
 
 // -------------------------------------------------------------
@@ -217,7 +270,6 @@ function saveRecordsTransaction(records) {
 
 /**
  * GET /api/template-csv
- * Generates and downloads a clean CSV template with headers and sample data
  */
 app.get('/api/template-csv', (req, res) => {
   const templateCsv = `order_id,product_name,price,quantity,product_cost,shipping_cost
@@ -231,7 +283,6 @@ ORD-1002,Ejemplo Producto en Pérdida,4.50,1,5.00,2.50`;
 
 /**
  * POST /api/upload-csv
- * Uploads user CSV, validates headers/data, calculates financials, inserts records
  */
 app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
   try {
@@ -250,7 +301,6 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
       });
     }
 
-    // Validation: Check if there's any recognizable price or financial data
     const firstRowNorm = normalizeRow(parsedRows[0]);
     if (firstRowNorm.price === undefined && firstRowNorm.product_cost === undefined && firstRowNorm.quantity === undefined) {
       return res.status(400).json({
@@ -263,7 +313,7 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
     saveRecordsTransaction(calculatedRecords);
 
     const summary = getSummaryMetrics();
-    const records = db.prepare('SELECT * FROM sales_records ORDER BY id ASC').all();
+    const records = getAllRecords();
 
     res.json({
       success: true,
@@ -280,7 +330,6 @@ app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
 
 /**
  * POST or GET /api/load-demo
- * Loads local demo_sales.csv, replaces database records, returns summary and records
  */
 const handleLoadDemo = async (req, res) => {
   try {
@@ -296,7 +345,7 @@ const handleLoadDemo = async (req, res) => {
     saveRecordsTransaction(calculatedRecords);
 
     const summary = getSummaryMetrics();
-    const records = db.prepare('SELECT * FROM sales_records ORDER BY id ASC').all();
+    const records = getAllRecords();
 
     res.json({
       success: true,
@@ -316,11 +365,10 @@ app.get('/api/load-demo', handleLoadDemo);
 
 /**
  * GET /api/records
- * Returns list of stored transaction records
  */
 app.get('/api/records', (req, res) => {
   try {
-    const records = db.prepare('SELECT * FROM sales_records ORDER BY id ASC').all();
+    const records = getAllRecords();
     res.json(records);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -329,7 +377,6 @@ app.get('/api/records', (req, res) => {
 
 /**
  * GET /api/summary
- * Returns global KPI summary metrics
  */
 app.get('/api/summary', (req, res) => {
   try {
@@ -342,11 +389,10 @@ app.get('/api/summary', (req, res) => {
 
 /**
  * GET /api/export-csv
- * Generates and downloads reporte_conciliado.csv with all calculated fields
  */
 app.get('/api/export-csv', (req, res) => {
   try {
-    const records = db.prepare('SELECT * FROM sales_records ORDER BY id ASC').all();
+    const records = getAllRecords();
     if (records.length === 0) {
       return res.status(400).json({ success: false, message: 'No hay datos registrados para exportar.' });
     }
@@ -377,7 +423,6 @@ app.get('/api/export-csv', (req, res) => {
         csvOutput = json2csv.parse(records, { fields });
       }
     } else {
-      // Direct CSV formatting fallback
       const headers = fields.join(',');
       const rows = records.map(r => fields.map(f => `"${String(r[f] !== undefined ? r[f] : '').replace(/"/g, '""')}"`).join(','));
       csvOutput = [headers, ...rows].join('\n');
@@ -394,18 +439,24 @@ app.get('/api/export-csv', (req, res) => {
 
 /**
  * DELETE /api/clear
- * Clears table records for testing purposes
  */
 app.delete('/api/clear', (req, res) => {
   try {
-    db.prepare('DELETE FROM sales_records').run();
+    db.run('DELETE FROM sales_records;');
+    persistDatabase();
     res.json({ success: true, message: 'Todos los registros han sido eliminados con éxito.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor Conciliador de Ganancias ejecutándose en http://localhost:${PORT}`);
+// Initialize database and start server
+let serverInstance;
+const startPromise = initDatabase().then(() => {
+  serverInstance = app.listen(PORT, () => {
+    console.log(`🚀 Servidor Conciliador de Ganancias ejecutándose en http://localhost:${PORT}`);
+  });
+  return serverInstance;
 });
+
+module.exports = { app, startPromise, initDatabase };
