@@ -47,6 +47,14 @@ function getSessionId(req) {
   ).trim();
 }
 
+/**
+ * Extracts language from query or header
+ */
+function getLanguage(req) {
+  const lang = String(req.query.lang || req.headers['accept-language'] || 'es').toLowerCase();
+  return lang.startsWith('en') ? 'en' : 'es';
+}
+
 async function initDatabase() {
   if (!SQL) {
     SQL = await initSqlJs();
@@ -304,17 +312,31 @@ function saveRecordsTransaction(sessionId, records) {
 /**
  * Generates an Excel (.xlsx) file buffer with colors, styled headers, gridlines and currency formats
  */
-async function generateStyledExcelReport(records, summary) {
+async function generateStyledExcelReport(records, summary, isEn = false) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Conciliador de Ganancias E-commerce';
+  workbook.creator = isEn ? 'E-Commerce Profit Reconciler' : 'Conciliador de Ganancias E-commerce';
   workbook.created = new Date();
 
-  const worksheet = workbook.addWorksheet('Reporte Conciliado', {
+  const worksheetName = isEn ? 'Reconciled Report' : 'Reporte Conciliado';
+  const worksheet = workbook.addWorksheet(worksheetName, {
     views: [{ showGridLines: true }]
   });
 
   // Define Columns
-  worksheet.columns = [
+  worksheet.columns = isEn ? [
+    { header: 'Order ID', key: 'order_id', width: 16 },
+    { header: 'Product Name', key: 'product_name', width: 30 },
+    { header: 'Unit Price', key: 'price', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'Quantity', key: 'quantity', width: 10, style: { alignment: { horizontal: 'center' } } },
+    { header: 'Product Cost', key: 'product_cost', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'Shipping Cost', key: 'shipping_cost', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'Gross Revenue', key: 'gross_income', width: 16, style: { numFmt: '$#,##0.00' } },
+    { header: 'Platform Fee', key: 'platform_fee', width: 18, style: { numFmt: '$#,##0.00' } },
+    { header: 'Total Cost', key: 'total_cost', width: 14, style: { numFmt: '$#,##0.00' } },
+    { header: 'Net Profit', key: 'net_profit', width: 16, style: { numFmt: '$#,##0.00' } },
+    { header: 'Margin %', key: 'net_margin', width: 12, style: { numFmt: '0.0"%"' } },
+    { header: 'Status', key: 'status', width: 16, style: { alignment: { horizontal: 'center' } } }
+  ] : [
     { header: 'Order ID', key: 'order_id', width: 16 },
     { header: 'Producto', key: 'product_name', width: 30 },
     { header: 'Precio Unit.', key: 'price', width: 14, style: { numFmt: '$#,##0.00' } },
@@ -352,6 +374,9 @@ async function generateStyledExcelReport(records, summary) {
     };
   });
 
+  const badgeLoss = isEn ? '⚠️ LOSS' : '⚠️ PÉRDIDA';
+  const badgeProfitable = isEn ? '✓ PROFITABLE' : '✓ RENTABLE';
+
   // Add Data Rows with Gridlines and Green / Red highlights
   records.forEach((r) => {
     const isLoss = r.is_loss === 1 || r.is_loss === true;
@@ -367,7 +392,7 @@ async function generateStyledExcelReport(records, summary) {
       total_cost: r.total_cost,
       net_profit: r.net_profit,
       net_margin: r.net_margin,
-      status: isLoss ? '⚠️ PÉRDIDA' : '✓ RENTABLE'
+      status: isLoss ? badgeLoss : badgeProfitable
     });
 
     row.height = 22;
@@ -414,9 +439,10 @@ async function generateStyledExcelReport(records, summary) {
 /**
  * Generates an Excel (.xlsx) template buffer
  */
-async function generateStyledExcelTemplate() {
+async function generateStyledExcelTemplate(isEn = false) {
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Plantilla Ventas', {
+  const worksheetName = isEn ? 'Sales Template' : 'Plantilla Ventas';
+  const worksheet = workbook.addWorksheet(worksheetName, {
     views: [{ showGridLines: true }]
   });
 
@@ -450,10 +476,15 @@ async function generateStyledExcelTemplate() {
     };
   });
 
-  const sampleRows = [
-    { order_id: 'ORD-1001', product_name: 'Ejemplo Producto Rentable', price: 49.99, quantity: 2, product_cost: 30.00, shipping_cost: 5.50 },
-    { order_id: 'ORD-1002', product_name: 'Ejemplo Producto en Pérdida', price: 4.50, quantity: 1, product_cost: 5.00, shipping_cost: 2.50 }
-  ];
+  const sampleRows = isEn
+    ? [
+        { order_id: 'ORD-1001', product_name: 'Sample Profitable Item', price: 49.99, quantity: 2, product_cost: 30.00, shipping_cost: 5.50 },
+        { order_id: 'ORD-1002', product_name: 'Sample Loss Item', price: 4.50, quantity: 1, product_cost: 5.00, shipping_cost: 2.50 }
+      ]
+    : [
+        { order_id: 'ORD-1001', product_name: 'Ejemplo Producto Rentable', price: 49.99, quantity: 2, product_cost: 30.00, shipping_cost: 5.50 },
+        { order_id: 'ORD-1002', product_name: 'Ejemplo Producto en Pérdida', price: 4.50, quantity: 1, product_cost: 5.00, shipping_cost: 2.50 }
+      ];
 
   sampleRows.forEach((r) => {
     const row = worksheet.addRow(r);
@@ -480,12 +511,19 @@ async function generateStyledExcelTemplate() {
  * CSV template with UTF-8 BOM so Excel opens it in distinct columns automatically
  */
 app.get('/api/template-csv', (req, res) => {
-  const templateCsv = `\uFEFForder_id,product_name,price,quantity,product_cost,shipping_cost
+  const isEn = getLanguage(req) === 'en';
+  const filename = isEn ? 'sales_template.csv' : 'plantilla_ventas.csv';
+  
+  const templateCsv = isEn
+    ? `\uFEFForder_id,product_name,price,quantity,product_cost,shipping_cost
+ORD-1001,Sample Profitable Item,49.99,2,30.00,5.50
+ORD-1002,Sample Loss Item,4.50,1,5.00,2.50`
+    : `\uFEFForder_id,product_name,price,quantity,product_cost,shipping_cost
 ORD-1001,Ejemplo Producto Rentable,49.99,2,30.00,5.50
 ORD-1002,Ejemplo Producto en Pérdida,4.50,1,5.00,2.50`;
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="plantilla_ventas.csv"');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   return res.status(200).send(Buffer.from(templateCsv, 'utf-8'));
 });
 
@@ -495,9 +533,11 @@ ORD-1002,Ejemplo Producto en Pérdida,4.50,1,5.00,2.50`;
  */
 app.get('/api/template-excel', async (req, res) => {
   try {
-    const buffer = await generateStyledExcelTemplate();
+    const isEn = getLanguage(req) === 'en';
+    const filename = isEn ? 'sales_template.xlsx' : 'plantilla_ventas.xlsx';
+    const buffer = await generateStyledExcelTemplate(isEn);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="plantilla_ventas.xlsx"');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(buffer);
   } catch (error) {
     console.error('Error generando plantilla Excel:', error);
@@ -622,9 +662,14 @@ app.get('/api/summary', (req, res) => {
 app.get('/api/export-csv', (req, res) => {
   try {
     const sessionId = getSessionId(req);
+    const isEn = getLanguage(req) === 'en';
+    const filename = isEn ? 'reconciled_sales_report.csv' : 'reporte_conciliado.csv';
     const records = getAllRecords(sessionId);
     if (records.length === 0) {
-      return res.status(400).json({ success: false, message: 'No hay datos registrados para exportar.' });
+      return res.status(400).json({ 
+        success: false, 
+        message: isEn ? 'No recorded data to export.' : 'No hay datos registrados para exportar.' 
+      });
     }
 
     const fields = [
@@ -661,7 +706,7 @@ app.get('/api/export-csv', (req, res) => {
     // UTF-8 BOM ensures Excel cleanly splits columns instead of grouping everything into Column A
     const csvWithBom = '\uFEFF' + csvOutput;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="reporte_conciliado.csv"');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(Buffer.from(csvWithBom, 'utf-8'));
   } catch (error) {
     console.error('Error en /api/export-csv:', error);
@@ -676,16 +721,21 @@ app.get('/api/export-csv', (req, res) => {
 app.get('/api/export-excel', async (req, res) => {
   try {
     const sessionId = getSessionId(req);
+    const isEn = getLanguage(req) === 'en';
+    const filename = isEn ? 'reconciled_sales_report.xlsx' : 'reporte_conciliado.xlsx';
     const records = getAllRecords(sessionId);
     if (records.length === 0) {
-      return res.status(400).json({ success: false, message: 'No hay datos registrados para exportar.' });
+      return res.status(400).json({ 
+        success: false, 
+        message: isEn ? 'No recorded data to export.' : 'No hay datos registrados para exportar.' 
+      });
     }
 
     const summary = getSummaryMetrics(sessionId);
-    const buffer = await generateStyledExcelReport(records, summary);
+    const buffer = await generateStyledExcelReport(records, summary, isEn);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="reporte_conciliado.xlsx"');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(buffer);
   } catch (error) {
     console.error('Error en /api/export-excel:', error);

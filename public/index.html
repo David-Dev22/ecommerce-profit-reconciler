@@ -626,24 +626,24 @@
       }
     });
 
-    // Evento: Descargar Plantilla CSV (con UTF-8 BOM para separación automática de columnas en Excel)
+    // Evento: Descargar Plantilla CSV (con UTF-8 BOM y nombre según idioma)
     btnDownloadTemplateCsv.addEventListener('click', () => {
-      window.location.href = '/api/template-csv';
+      window.location.href = `/api/template-csv?lang=${encodeURIComponent(currentLang)}`;
     });
 
-    // Evento: Descargar Plantilla Excel (.xlsx con encabezados estilizados y cuadrícula)
+    // Evento: Descargar Plantilla Excel (.xlsx con encabezados estilizados y nombre según idioma)
     btnDownloadTemplateExcel.addEventListener('click', () => {
-      window.location.href = '/api/template-excel';
+      window.location.href = `/api/template-excel?lang=${encodeURIComponent(currentLang)}`;
     });
 
-    // Evento: Descargar Reporte Excel (.xlsx con cuadrícula, formato de moneda y colores verde/rojo)
+    // Evento: Descargar Reporte Excel (.xlsx con cuadrícula, formato de moneda, colores y nombre según idioma)
     btnExportExcel.addEventListener('click', () => {
-      window.location.href = `/api/export-excel?sessionId=${encodeURIComponent(currentSessionId)}`;
+      window.location.href = `/api/export-excel?sessionId=${encodeURIComponent(currentSessionId)}&lang=${encodeURIComponent(currentLang)}`;
     });
 
-    // Evento: Descargar Reporte CSV (con UTF-8 BOM)
+    // Evento: Descargar Reporte CSV (con UTF-8 BOM y nombre según idioma)
     btnExportCsv.addEventListener('click', () => {
-      window.location.href = `/api/export-csv?sessionId=${encodeURIComponent(currentSessionId)}`;
+      window.location.href = `/api/export-csv?sessionId=${encodeURIComponent(currentSessionId)}&lang=${encodeURIComponent(currentLang)}`;
     });
 
     // Evento: Limpiar Datos de la Sesión
