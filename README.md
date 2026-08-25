@@ -85,8 +85,8 @@ Many sellers on **Shopify, Stripe, MercadoLibre, Amazon, or WooCommerce** calcul
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/David-Dev22/conciliador-de-ganancias.git
-cd conciliador-de-ganancias
+git clone https://github.com/David-Dev22/ecommerce-profit-reconciler.git
+cd ecommerce-profit-reconciler
 ```
 
 ### 2. Install dependencies
