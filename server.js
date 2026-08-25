@@ -54,17 +54,60 @@ db.exec(`
 `);
 
 /**
+ * Normalizes synonyms for CSV headers in Spanish and English
+ */
+function normalizeRow(rawRow) {
+  const normalized = {};
+  for (const [key, val] of Object.entries(rawRow)) {
+    if (!key) continue;
+    // Clean key: lowercase, trim, remove accents and special chars
+    const cleanKey = key
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[\s_-]+/g, '');
+
+    if (['orderid', 'orden', 'id', 'pedido', 'invoice', 'transaccion', 'transactionid'].includes(cleanKey)) {
+      normalized.order_id = val;
+    } else if (['productname', 'producto', 'product', 'item', 'nombre', 'descripcion', 'description', 'titulo', 'title'].includes(cleanKey)) {
+      normalized.product_name = val;
+    } else if (['price', 'precio', 'preciounitario', 'unitprice', 'monto', 'valor'].includes(cleanKey)) {
+      normalized.price = val;
+    } else if (['quantity', 'cantidad', 'qty', 'cant', 'unidades', 'count'].includes(cleanKey)) {
+      normalized.quantity = val;
+    } else if (['productcost', 'cost', 'costo', 'costounitario', 'unitcost', 'costoproducto', 'itemcost'].includes(cleanKey)) {
+      normalized.product_cost = val;
+    } else if (['shippingcost', 'shipping', 'envio', 'costoenvio', 'flete', 'shippingfee'].includes(cleanKey)) {
+      normalized.shipping_cost = val;
+    } else {
+      normalized[cleanKey] = val;
+    }
+  }
+  return normalized;
+}
+
+/**
  * Mathematical calculations per transaction row
  */
-function calculateFinancials(row, index = 1) {
+function calculateFinancials(rawRow, index = 1) {
+  const row = normalizeRow(rawRow);
+
   const order_id = row.order_id ? String(row.order_id).trim() : `ORD-${String(index).padStart(4, '0')}`;
   const product_name = row.product_name ? String(row.product_name).trim() : 'Producto General';
-  const price = parseFloat(row.price) || 0;
-  const quantity = parseInt(row.quantity, 10) || 0;
   
-  // Cost breakdown
-  const product_cost = parseFloat(row.product_cost !== undefined ? row.product_cost : (row.cost || 0)) || 0;
-  const shipping_cost = parseFloat(row.shipping_cost) || 0;
+  // Clean numeric values (replace commas, currency signs, etc.)
+  const cleanNum = (v) => {
+    if (typeof v === 'number') return v;
+    if (!v) return 0;
+    const str = String(v).replace(/[^0-9.-]/g, '');
+    return parseFloat(str) || 0;
+  };
+
+  const price = cleanNum(row.price);
+  const quantity = parseInt(cleanNum(row.quantity), 10) || (price > 0 ? 1 : 0);
+  const product_cost = cleanNum(row.product_cost !== undefined ? row.product_cost : (row.cost || 0));
+  const shipping_cost = cleanNum(row.shipping_cost);
 
   // 1. Ingreso Bruto = price * quantity
   const gross_income = Math.round(((price * quantity) + Number.EPSILON) * 100) / 100;
@@ -173,18 +216,47 @@ function saveRecordsTransaction(records) {
 // -------------------------------------------------------------
 
 /**
+ * GET /api/template-csv
+ * Generates and downloads a clean CSV template with headers and sample data
+ */
+app.get('/api/template-csv', (req, res) => {
+  const templateCsv = `order_id,product_name,price,quantity,product_cost,shipping_cost
+ORD-1001,Ejemplo Producto Rentable,49.99,2,30.00,5.50
+ORD-1002,Ejemplo Producto en Pérdida,4.50,1,5.00,2.50`;
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="plantilla_ventas.csv"');
+  return res.status(200).send(templateCsv);
+});
+
+/**
  * POST /api/upload-csv
- * Uploads user CSV, cleans database, calculates financials, inserts records, returns summary and records
+ * Uploads user CSV, validates headers/data, calculates financials, inserts records
  */
 app.post('/api/upload-csv', upload.single('file'), async (req, res) => {
   try {
     if (!req.file || !req.file.buffer) {
-      return res.status(400).json({ success: false, message: 'No se ha subido ningún archivo CSV válido.' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No se ha subido ningún archivo CSV válido.' 
+      });
     }
 
     const parsedRows = await parseCsvStream(req.file.buffer);
     if (!parsedRows || parsedRows.length === 0) {
-      return res.status(400).json({ success: false, message: 'El archivo CSV está vacío o no contiene filas legibles.' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'El archivo CSV está vacío o no contiene filas legibles.' 
+      });
+    }
+
+    // Validation: Check if there's any recognizable price or financial data
+    const firstRowNorm = normalizeRow(parsedRows[0]);
+    if (firstRowNorm.price === undefined && firstRowNorm.product_cost === undefined && firstRowNorm.quantity === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'El archivo CSV no contiene columnas reconocibles de precio o costo. Por favor descarga la plantilla CSV para verificar el formato.'
+      });
     }
 
     const calculatedRecords = parsedRows.map((row, idx) => calculateFinancials(row, idx + 1));

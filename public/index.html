@@ -9,22 +9,25 @@
 </head>
 <body>
 
-  <!-- Encabezado Principal -->
+  <!-- Encabezado Principal / Navbar -->
   <header class="container">
     <nav>
       <ul>
         <li>
-          <strong>📊 Conciliador de Ganancias E-commerce</strong>
+          <strong id="nav-title">📊 Conciliador de Ganancias E-commerce</strong>
         </li>
       </ul>
       <ul>
         <li>
-          <button class="outline contrast" id="btn-theme-toggle" style="margin: 0; padding: 4px 12px;">🌓 Tema</button>
+          <button class="outline" id="btn-lang-toggle" style="margin: 0; padding: 4px 10px; font-size: 0.85rem;">🌐 <span id="lang-label">EN</span></button>
+        </li>
+        <li>
+          <button class="outline contrast" id="btn-theme-toggle" style="margin: 0; padding: 4px 10px; font-size: 0.85rem;" title="Cambiar Tema">🌓</button>
         </li>
       </ul>
     </nav>
     <p>
-      <small>
+      <small id="nav-desc">
         Sistema de conciliación financiera automatizada: cálculo de ingresos brutos, comisiones de pasarela (2.9% + $0.30), costos directos y detección en tiempo real de operaciones en pérdida.
       </small>
     </p>
@@ -37,7 +40,7 @@
       <div class="grid">
         <article>
           <header>
-            <small><strong>Facturación Total Bruta</strong></small>
+            <small><strong id="kpi-gross-title">Facturación Total Bruta</strong></small>
           </header>
           <h2 id="gross-total">$0.00</h2>
           <footer>
@@ -47,17 +50,17 @@
 
         <article>
           <header>
-            <small><strong>Comisiones Totales Pagadas</strong></small>
+            <small><strong id="kpi-fee-title">Comisiones Totales Pagadas</strong></small>
           </header>
           <h2 id="fee-total">$0.00</h2>
           <footer>
-            <small>Fórmula: (Bruto &times; 2.9%) + $0.30</small>
+            <small id="kpi-fee-formula">Fórmula: (Bruto &times; 2.9%) + $0.30</small>
           </footer>
         </article>
 
         <article>
           <header>
-            <small><strong>Ganancia Neta Real</strong></small>
+            <small><strong id="kpi-net-title">Ganancia Neta Real</strong></small>
           </header>
           <h2 id="net-total">$0.00</h2>
           <footer>
@@ -69,56 +72,89 @@
 
     <!-- Panel de Control y Acciones -->
     <section>
-      <article>
-        <header>
-          <strong>⚙️ Panel de Control y Procesamiento</strong>
+      <article id="drop-zone">
+        <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <strong id="panel-title">⚙️ Panel de Control y Procesamiento</strong>
+          <div>
+            <button type="button" class="outline secondary" id="btn-download-template" style="margin: 0; padding: 4px 10px; font-size: 0.85rem;">📄 Descargar Plantilla CSV</button>
+            <button type="button" class="outline contrast" id="btn-clear-data" style="margin: 0; padding: 4px 10px; font-size: 0.85rem;">🗑️ Limpiar Datos</button>
+          </div>
         </header>
 
         <form id="upload-form">
           <div class="grid">
             <div>
-              <label for="csv-file">
-                Seleccionar Archivo CSV de Ventas
+              <label for="csv-file" id="file-input-label">
+                Seleccionar o Arrastrar Archivo CSV de Ventas
                 <input type="file" id="csv-file" accept=".csv" required>
               </label>
             </div>
             <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;">
               <button type="submit" id="btn-upload">📤 Procesar CSV</button>
               <button type="button" class="secondary" id="btn-load-demo">⚡ Cargar Datos Demo</button>
-              <button type="button" class="contrast outline" id="btn-export-csv">📥 Descargar Reporte Conciliado</button>
+              <button type="button" class="contrast outline" id="btn-export-csv">📥 Descargar Reporte</button>
             </div>
           </div>
         </form>
 
-        <div id="status-message" aria-live="polite" style="margin-top: 10px;"></div>
+        <!-- Guía de Formato CSV Desplegable -->
+        <details style="margin-top: 15px; margin-bottom: 0;">
+          <summary id="guide-summary"><strong>ℹ️ Guía de formato y columnas esperadas</strong></summary>
+          <p style="margin-top: 10px; font-size: 0.9rem;" id="guide-intro">
+            Puedes subir archivos CSV con cabeceras en español o inglés. Las columnas recomendadas son:
+          </p>
+          <ul style="font-size: 0.85rem;" id="guide-list">
+            <li><code>order_id</code> (o <code>orden</code>, <code>id</code>): Identificador único de la transacción.</li>
+            <li><code>product_name</code> (o <code>producto</code>, <code>item</code>): Nombre o descripción del artículo.</li>
+            <li><code>price</code> (o <code>precio</code>): Precio unitario de venta.</li>
+            <li><code>quantity</code> (o <code>cantidad</code>, <code>qty</code>): Cantidad vendida.</li>
+            <li><code>product_cost</code> (o <code>costo</code>, <code>cost</code>): Costo de compra o manufactura unitario.</li>
+            <li><code>shipping_cost</code> (o <code>envio</code>, <code>shipping</code>): Costo de transporte asumido.</li>
+          </ul>
+        </details>
+
+        <div id="status-message" aria-live="polite" style="margin-top: 15px;"></div>
       </article>
     </section>
 
-    <!-- Tabla de Transacciones Conciliadas -->
+    <!-- Tabla de Transacciones Conciliadas y Filtros -->
     <section>
-      <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h3>Detalle de Transacciones Conciliadas</h3>
+      <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+        <h3 style="margin: 0;" id="table-title">Detalle de Transacciones Conciliadas</h3>
         <span id="table-summary-badge"><small>Esperando datos...</small></span>
       </header>
+
+      <!-- Barra de Búsqueda y Filtro de Pérdidas -->
+      <div class="grid" style="margin-bottom: 15px;">
+        <div>
+          <input type="search" id="search-input" placeholder="🔍 Buscar por Order ID o Producto..." style="margin-bottom: 0;">
+        </div>
+        <div style="display: flex; align-items: center;">
+          <label for="filter-loss-only" style="margin-bottom: 0; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="filter-loss-only" role="switch">
+            <span id="filter-loss-label">⚠️ Ver solo transacciones en pérdida</span>
+          </label>
+        </div>
+      </div>
 
       <figure>
         <table role="grid">
           <thead>
             <tr>
-              <th scope="col">Order ID</th>
-              <th scope="col">Producto</th>
-              <th scope="col">Ingreso Bruto</th>
-              <th scope="col">Comisión</th>
-              <th scope="col">Costos</th>
-              <th scope="col">Ganancia Neta</th>
-              <th scope="col">Margen %</th>
-              <th scope="col">Estado</th>
+              <th scope="col" id="th-order">Order ID</th>
+              <th scope="col" id="th-product">Producto</th>
+              <th scope="col" id="th-gross">Ingreso Bruto</th>
+              <th scope="col" id="th-fee">Comisión</th>
+              <th scope="col" id="th-costs">Costos</th>
+              <th scope="col" id="th-net">Ganancia Neta</th>
+              <th scope="col" id="th-margin">Margen %</th>
+              <th scope="col" id="th-status">Estado</th>
             </tr>
           </thead>
           <tbody id="records-tbody">
             <tr>
               <td colspan="8" style="text-align: center;">
-                <small>No hay registros cargados. Sube un archivo CSV o haz clic en "Cargar Datos Demo".</small>
+                <small id="table-empty-msg">No hay registros cargados. Sube un archivo CSV o haz clic en "Cargar Datos Demo".</small>
               </td>
             </tr>
           </tbody>
@@ -128,12 +164,118 @@
 
   </main>
 
-  <footer class="container" style="text-align: center; margin-top: 40px;">
-    <small>Conciliador de Ganancias E-commerce &copy; 2026 &bull; Construido con Node.js, SQLite &amp; Pico.css v2</small>
+  <footer class="container" style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
+    <small id="footer-text">Conciliador de Ganancias E-commerce &copy; 2026 &bull; Construido con Node.js, SQLite &amp; Pico.css v2</small>
   </footer>
 
-  <!-- Lógica JavaScript Vanilla -->
+  <!-- Lógica JavaScript Vanilla con Internacionalización (i18n) -->
   <script>
+    // Diccionario i18n
+    const translations = {
+      es: {
+        pageTitle: 'Conciliador de Ganancias E-commerce',
+        navTitle: '📊 Conciliador de Ganancias E-commerce',
+        navDesc: 'Sistema de conciliación financiera automatizada: cálculo de ingresos brutos, comisiones de pasarela (2.9% + $0.30), costos directos y detección en tiempo real de operaciones en pérdida.',
+        kpiGrossTitle: 'Facturación Total Bruta',
+        kpiFeeTitle: 'Comisiones Totales Pagadas',
+        kpiFeeFormula: 'Fórmula: (Bruto × 2.9%) + $0.30',
+        kpiNetTitle: 'Ganancia Neta Real',
+        transCountSuffix: 'transacciones registradas',
+        transProcSuffix: 'transacciones procesadas',
+        lossCountText: 'operaciones en pérdida',
+        panelTitle: '⚙️ Panel de Control y Procesamiento',
+        btnDownloadTemplate: '📄 Descargar Plantilla CSV',
+        btnClearData: '🗑️ Limpiar Datos',
+        fileInputLabel: 'Seleccionar o Arrastrar Archivo CSV de Ventas',
+        btnUpload: '📤 Procesar CSV',
+        btnLoadDemo: '⚡ Cargar Datos Demo',
+        btnExport: '📥 Descargar Reporte',
+        guideSummary: '<strong>ℹ️ Guía de formato y columnas esperadas</strong>',
+        guideIntro: 'Puedes subir archivos CSV con cabeceras en español o inglés. Las columnas recomendadas son:',
+        guideListHtml: `
+          <li><code>order_id</code> (o <code>orden</code>, <code>id</code>): Identificador único de la transacción.</li>
+          <li><code>product_name</code> (o <code>producto</code>, <code>item</code>): Nombre o descripción del artículo.</li>
+          <li><code>price</code> (o <code>precio</code>): Precio unitario de venta.</li>
+          <li><code>quantity</code> (o <code>cantidad</code>, <code>qty</code>): Cantidad vendida.</li>
+          <li><code>product_cost</code> (o <code>costo</code>, <code>cost</code>): Costo de compra o manufactura unitario.</li>
+          <li><code>shipping_cost</code> (o <code>envio</code>, <code>shipping</code>): Costo de transporte asumido.</li>
+        `,
+        tableTitle: 'Detalle de Transacciones Conciliadas',
+        waitingData: 'Esperando datos...',
+        searchPlaceholder: '🔍 Buscar por Order ID o Producto...',
+        filterLossLabel: '⚠️ Ver solo transacciones en pérdida',
+        thOrder: 'Order ID',
+        thProduct: 'Producto',
+        thGross: 'Ingreso Bruto',
+        thFee: 'Comisión',
+        thCosts: 'Costos',
+        thNet: 'Ganancia Neta',
+        thMargin: 'Margen %',
+        thStatus: 'Estado',
+        tableEmptyMsg: 'No hay registros cargados. Sube un archivo CSV o haz clic en "Cargar Datos Demo".',
+        badgeLoss: '⚠️ PÉRDIDA',
+        badgeProfitable: '✓ RENTABLE',
+        footerText: 'Conciliador de Ganancias E-commerce © 2026 • Construido con Node.js, SQLite & Pico.css v2',
+        noFileAlert: 'Por favor, selecciona un archivo .csv para procesar.',
+        demoLoadedMsg: 'Dataset demo cargado correctamente.',
+        clearedMsg: 'Todos los registros han sido eliminados.',
+        confirmClear: '¿Estás seguro de que deseas limpiar todos los datos registrados?'
+      },
+      en: {
+        pageTitle: 'E-Commerce Profit Reconciler',
+        navTitle: '📊 E-Commerce Profit Reconciler',
+        navDesc: 'Automated financial reconciliation system: gross revenue, payment gateway fees (2.9% + $0.30), direct costs and real-time detection of unprofitable loss transactions.',
+        kpiGrossTitle: 'Total Gross Revenue',
+        kpiFeeTitle: 'Total Gateway Fees Paid',
+        kpiFeeFormula: 'Formula: (Gross × 2.9%) + $0.30',
+        kpiNetTitle: 'Real Net Profit',
+        transCountSuffix: 'recorded transactions',
+        transProcSuffix: 'processed transactions',
+        lossCountText: 'unprofitable loss sales',
+        panelTitle: '⚙️ Control & Processing Panel',
+        btnDownloadTemplate: '📄 Download CSV Template',
+        btnClearData: '🗑️ Clear Data',
+        fileInputLabel: 'Select or Drag & Drop Sales CSV File',
+        btnUpload: '📤 Process CSV',
+        btnLoadDemo: '⚡ Load Demo Data',
+        btnExport: '📥 Download Report',
+        guideSummary: '<strong>ℹ️ CSV Format & Expected Columns Guide</strong>',
+        guideIntro: 'You can upload CSV files with headers in English or Spanish. Recommended columns are:',
+        guideListHtml: `
+          <li><code>order_id</code> (or <code>id</code>, <code>order</code>): Unique transaction identifier.</li>
+          <li><code>product_name</code> (or <code>product</code>, <code>item</code>): Item name or description.</li>
+          <li><code>price</code> (or <code>unit_price</code>): Unit selling price.</li>
+          <li><code>quantity</code> (or <code>qty</code>): Quantity sold.</li>
+          <li><code>product_cost</code> (or <code>cost</code>, <code>item_cost</code>): Unit purchase or manufacturing cost.</li>
+          <li><code>shipping_cost</code> (or <code>shipping</code>, <code>freight</code>): Associated shipping cost.</li>
+        `,
+        tableTitle: 'Reconciled Transactions Breakdown',
+        waitingData: 'Waiting for data...',
+        searchPlaceholder: '🔍 Search by Order ID or Product...',
+        filterLossLabel: '⚠️ Show only loss transactions',
+        thOrder: 'Order ID',
+        thProduct: 'Product',
+        thGross: 'Gross Revenue',
+        thFee: 'Platform Fee',
+        thCosts: 'Total Costs',
+        thNet: 'Net Profit',
+        thMargin: 'Margin %',
+        thStatus: 'Status',
+        tableEmptyMsg: 'No records loaded. Upload a CSV file or click "Load Demo Data".',
+        badgeLoss: '⚠️ LOSS',
+        badgeProfitable: '✓ PROFITABLE',
+        footerText: 'E-Commerce Profit Reconciler © 2026 • Built with Node.js, SQLite & Pico.css v2',
+        noFileAlert: 'Please select a valid .csv file to process.',
+        demoLoadedMsg: 'Demo dataset loaded successfully.',
+        clearedMsg: 'All records have been cleared.',
+        confirmClear: 'Are you sure you want to clear all stored transactions?'
+      }
+    };
+
+    // Auto-detect browser language or load from storage
+    const detectedLang = (navigator.language && navigator.language.toLowerCase().startsWith('es')) ? 'es' : 'en';
+    let currentLang = localStorage.getItem('app-lang') || detectedLang;
+
     // Formateador de moneda USD
     const currencyFormatter = new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -141,6 +283,9 @@
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+
+    // Estado global de registros
+    let currentRecords = [];
 
     // Elementos DOM
     const grossTotalEl = document.getElementById('gross-total');
@@ -156,7 +301,60 @@
     const btnUpload = document.getElementById('btn-upload');
     const btnDemo = document.getElementById('btn-load-demo');
     const btnExport = document.getElementById('btn-export-csv');
+    const btnDownloadTemplate = document.getElementById('btn-download-template');
+    const btnClearData = document.getElementById('btn-clear-data');
     const btnTheme = document.getElementById('btn-theme-toggle');
+    const btnLang = document.getElementById('btn-lang-toggle');
+    const langLabel = document.getElementById('lang-label');
+    const searchInput = document.getElementById('search-input');
+    const filterLossOnly = document.getElementById('filter-loss-only');
+    const dropZone = document.getElementById('drop-zone');
+
+    // Función para aplicar traducciones
+    function applyLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('app-lang', lang);
+      const t = translations[lang];
+
+      document.title = t.pageTitle;
+      document.getElementById('nav-title').textContent = t.navTitle;
+      document.getElementById('nav-desc').textContent = t.navDesc;
+      document.getElementById('kpi-gross-title').textContent = t.kpiGrossTitle;
+      document.getElementById('kpi-fee-title').textContent = t.kpiFeeTitle;
+      document.getElementById('kpi-fee-formula').innerHTML = t.kpiFeeFormula;
+      document.getElementById('kpi-net-title').textContent = t.kpiNetTitle;
+      document.getElementById('panel-title').textContent = t.panelTitle;
+      btnDownloadTemplate.textContent = t.btnDownloadTemplate;
+      btnClearData.textContent = t.btnClearData;
+      document.getElementById('file-input-label').childNodes[0].textContent = t.fileInputLabel + ' ';
+      btnUpload.textContent = t.btnUpload;
+      btnDemo.textContent = t.btnLoadDemo;
+      btnExport.textContent = t.btnExport;
+      document.getElementById('guide-summary').innerHTML = t.guideSummary;
+      document.getElementById('guide-intro').textContent = t.guideIntro;
+      document.getElementById('guide-list').innerHTML = t.guideListHtml;
+      document.getElementById('table-title').textContent = t.tableTitle;
+      searchInput.placeholder = t.searchPlaceholder;
+      document.getElementById('filter-loss-label').textContent = t.filterLossLabel;
+      document.getElementById('th-order').textContent = t.thOrder;
+      document.getElementById('th-product').textContent = t.thProduct;
+      document.getElementById('th-gross').textContent = t.thGross;
+      document.getElementById('th-fee').textContent = t.thFee;
+      document.getElementById('th-costs').textContent = t.thCosts;
+      document.getElementById('th-net').textContent = t.thNet;
+      document.getElementById('th-margin').textContent = t.thMargin;
+      document.getElementById('th-status').textContent = t.thStatus;
+      document.getElementById('footer-text').innerHTML = t.footerText;
+      langLabel.textContent = lang === 'es' ? 'EN' : 'ES';
+
+      renderTable();
+    }
+
+    // Toggle de Idioma
+    btnLang.addEventListener('click', () => {
+      const newLang = currentLang === 'es' ? 'en' : 'es';
+      applyLanguage(newLang);
+    });
 
     // Manejo de Tema Claro/Oscuro
     btnTheme.addEventListener('click', () => {
@@ -183,11 +381,12 @@
         if (statusMsgEl.innerHTML.includes(message)) {
           statusMsgEl.innerHTML = '';
         }
-      }, 6000);
+      }, 7000);
     }
 
     // Actualizar Tarjetas de Métricas
     function updateMetrics(summary) {
+      const t = translations[currentLang];
       const gross = summary.gross_total || 0;
       const fee = summary.fee_total || 0;
       const net = summary.net_total || 0;
@@ -198,31 +397,56 @@
       feeTotalEl.textContent = currencyFormatter.format(fee);
       netTotalEl.textContent = currencyFormatter.format(net);
       
-      totalCountEl.textContent = `${total} transacciones procesadas`;
+      totalCountEl.textContent = `${total} ${t.transProcSuffix}`;
       lossCountEl.innerHTML = loss > 0 
-        ? `<mark><strong>${loss} operaciones en pérdida</strong></mark>` 
-        : `0 operaciones en pérdida`;
+        ? `<mark><strong>${loss} ${t.lossCountText}</strong></mark>` 
+        : `0 ${t.lossCountText}`;
 
-      tableBadgeEl.innerHTML = `<small>Total: <strong>${total}</strong> | Pérdidas: <strong>${loss}</strong></small>`;
+      tableBadgeEl.innerHTML = `<small>Total: <strong>${total}</strong> | ${currentLang === 'es' ? 'Pérdidas' : 'Losses'}: <strong>${loss}</strong></small>`;
     }
 
-    // Renderizar Filas de la Tabla
-    function renderTable(records) {
-      if (!records || records.length === 0) {
+    // Renderizar Filas de la Tabla con Filtros de Búsqueda y Pérdida
+    function renderTable() {
+      const t = translations[currentLang];
+      if (!currentRecords || currentRecords.length === 0) {
         recordsTbodyEl.innerHTML = `
           <tr>
             <td colspan="8" style="text-align: center;">
-              <small>No hay registros conciliados disponibles.</small>
+              <small>${t.tableEmptyMsg}</small>
             </td>
           </tr>`;
         return;
       }
 
-      recordsTbodyEl.innerHTML = records.map(row => {
+      const searchTerm = searchInput.value.trim().toLowerCase();
+      const onlyLosses = filterLossOnly.checked;
+
+      const filtered = currentRecords.filter(row => {
+        const isLoss = row.is_loss === 1 || row.is_loss === true;
+        if (onlyLosses && !isLoss) return false;
+        if (searchTerm) {
+          const matchId = (row.order_id || '').toLowerCase().includes(searchTerm);
+          const matchProduct = (row.product_name || '').toLowerCase().includes(searchTerm);
+          return matchId || matchProduct;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        recordsTbodyEl.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align: center;">
+              <small>${currentLang === 'es' ? 'No se encontraron transacciones con el filtro aplicado.' : 'No transactions matched the active filter.'}</small>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      recordsTbodyEl.innerHTML = filtered.map(row => {
         const isLoss = row.is_loss === 1 || row.is_loss === true;
         const statusBadge = isLoss
-          ? `<mark role="alert"><strong>⚠️ PÉRDIDA</strong></mark>`
-          : `<ins><strong>✓ RENTABLE</strong></ins>`;
+          ? `<mark role="alert"><strong>${t.badgeLoss}</strong></mark>`
+          : `<ins><strong>${t.badgeProfitable}</strong></ins>`;
 
         const netProfitFormatted = currencyFormatter.format(row.net_profit);
         const netProfitDisplay = isLoss
@@ -236,7 +460,7 @@
         return `
           <tr ${isLoss ? 'aria-invalid="true"' : ''}>
             <td><code>${row.order_id}</code></td>
-            <td>${row.product_name || 'Sin especificar'}</td>
+            <td>${row.product_name || '—'}</td>
             <td>${currencyFormatter.format(row.gross_income)}</td>
             <td>${currencyFormatter.format(row.platform_fee)}</td>
             <td>${currencyFormatter.format(row.total_cost)}</td>
@@ -248,6 +472,10 @@
       }).join('');
     }
 
+    // Eventos de Filtro y Búsqueda
+    searchInput.addEventListener('input', renderTable);
+    filterLossOnly.addEventListener('change', renderTable);
+
     // Cargar Datos Iniciales
     async function loadInitialData() {
       try {
@@ -255,10 +483,11 @@
         if (res.ok) {
           const records = await res.json();
           if (records && records.length > 0) {
+            currentRecords = records;
             const sumRes = await fetch('/api/summary');
             const summary = await sumRes.json();
             updateMetrics(summary);
-            renderTable(records);
+            renderTable();
           }
         }
       } catch (err) {
@@ -266,12 +495,11 @@
       }
     }
 
-    // Evento: Subir CSV
-    uploadForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const file = csvFileInput.files[0];
+    // Enviar y Procesar Archivo CSV
+    async function processCsvFile(file) {
+      const t = translations[currentLang];
       if (!file) {
-        showNotification('Por favor, selecciona un archivo .csv para procesar.', true);
+        showNotification(t.noFileAlert, true);
         return;
       }
 
@@ -289,12 +517,13 @@
 
         const data = await response.json();
         if (data.success) {
+          currentRecords = data.records;
           updateMetrics(data.summary);
-          renderTable(data.records);
-          showNotification(data.message || 'Archivo procesado con éxito.');
+          renderTable();
+          showNotification(data.message || (currentLang === 'es' ? 'Archivo procesado con éxito.' : 'File processed successfully.'));
           csvFileInput.value = '';
         } else {
-          showNotification(data.message || 'Error al procesar el archivo.', true);
+          showNotification(data.message || (currentLang === 'es' ? 'Error al procesar el archivo.' : 'Error processing file.'), true);
         }
       } catch (error) {
         showNotification('Error de conexión con el servidor: ' + error.message, true);
@@ -302,10 +531,43 @@
         btnUpload.removeAttribute('aria-busy');
         btnUpload.disabled = false;
       }
+    }
+
+    // Evento Formulario Subida
+    uploadForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      processCsvFile(csvFileInput.files[0]);
+    });
+
+    // Soporte Drag & Drop
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.border = '2px dashed var(--pico-primary)';
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.border = '';
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files && files.length > 0) {
+        csvFileInput.files = files;
+        processCsvFile(files[0]);
+      }
     });
 
     // Evento: Cargar Datos Demo
     btnDemo.addEventListener('click', async () => {
+      const t = translations[currentLang];
       btnDemo.setAttribute('aria-busy', 'true');
       btnDemo.disabled = true;
 
@@ -316,9 +578,10 @@
 
         const data = await response.json();
         if (data.success) {
+          currentRecords = data.records;
           updateMetrics(data.summary);
-          renderTable(data.records);
-          showNotification(data.message || 'Dataset demo cargado correctamente.');
+          renderTable();
+          showNotification(data.message || t.demoLoadedMsg);
         } else {
           showNotification(data.message || 'Error al cargar datos demo.', true);
         }
@@ -330,13 +593,40 @@
       }
     });
 
+    // Evento: Descargar Plantilla CSV
+    btnDownloadTemplate.addEventListener('click', () => {
+      window.location.href = '/api/template-csv';
+    });
+
     // Evento: Descargar Reporte CSV
     btnExport.addEventListener('click', () => {
       window.location.href = '/api/export-csv';
     });
 
-    // Inicializar al cargar el DOM
-    document.addEventListener('DOMContentLoaded', loadInitialData);
+    // Evento: Limpiar Datos
+    btnClearData.addEventListener('click', async () => {
+      const t = translations[currentLang];
+      if (!confirm(t.confirmClear)) return;
+
+      try {
+        const res = await fetch('/api/clear', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          currentRecords = [];
+          updateMetrics({ gross_total: 0, fee_total: 0, net_total: 0, total_records: 0, loss_count: 0 });
+          renderTable();
+          showNotification(t.clearedMsg);
+        }
+      } catch (err) {
+        showNotification('Error al limpiar datos: ' + err.message, true);
+      }
+    });
+
+    // Inicializar Idioma y Datos al cargar el DOM
+    document.addEventListener('DOMContentLoaded', () => {
+      applyLanguage(currentLang);
+      loadInitialData();
+    });
   </script>
 </body>
 </html>

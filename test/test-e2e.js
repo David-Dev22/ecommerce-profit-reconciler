@@ -41,10 +41,18 @@ function request(method, pathName, headers = {}, body = null) {
 }
 
 async function runE2E() {
-  console.log('🚀 Iniciando pruebas End-to-End de la API REST...');
+  console.log('🚀 Iniciando pruebas End-to-End de la API REST y Nuevas Funcionalidades...');
 
-  // 1. Test GET /api/load-demo or POST /api/load-demo
-  console.log('1. Probando POST /api/load-demo...');
+  // 1. Test GET /api/template-csv
+  console.log('1. Probando GET /api/template-csv (Descarga de Plantilla)...');
+  const templateRes = await request('GET', '/api/template-csv');
+  assert.strictEqual(templateRes.statusCode, 200, 'Template status code should be 200');
+  assert(templateRes.headers['content-type'].includes('text/csv'));
+  assert(templateRes.body.includes('order_id,product_name,price,quantity,product_cost,shipping_cost'));
+  console.log('   ✓ Plantilla CSV servida correctamente con cabeceras estándar.');
+
+  // 2. Test POST /api/load-demo
+  console.log('2. Probando POST /api/load-demo...');
   const demoRes = await request('POST', '/api/load-demo');
   assert.strictEqual(demoRes.statusCode, 200, 'Status code should be 200');
   const demoData = JSON.parse(demoRes.body);
@@ -53,8 +61,8 @@ async function runE2E() {
   assert(demoData.summary.loss_count >= 3, 'Should have at least 3 loss operations');
   console.log(`   ✓ Demo cargada: ${demoData.count} transacciones, ${demoData.summary.loss_count} pérdidas.`);
 
-  // 2. Test GET /api/summary
-  console.log('2. Probando GET /api/summary...');
+  // 3. Test GET /api/summary
+  console.log('3. Probando GET /api/summary...');
   const sumRes = await request('GET', '/api/summary');
   assert.strictEqual(sumRes.statusCode, 200);
   const sumData = JSON.parse(sumRes.body);
@@ -63,8 +71,8 @@ async function runE2E() {
   assert(sumData.fee_total > 0);
   console.log(`   ✓ Resumen verificado: Facturado $${sumData.gross_total}, Comisiones $${sumData.fee_total}, Ganancia $${sumData.net_total}`);
 
-  // 3. Test GET /api/records
-  console.log('3. Probando GET /api/records...');
+  // 4. Test GET /api/records
+  console.log('4. Probando GET /api/records...');
   const recRes = await request('GET', '/api/records');
   assert.strictEqual(recRes.statusCode, 200);
   const records = JSON.parse(recRes.body);
@@ -72,8 +80,8 @@ async function runE2E() {
   assert.strictEqual(records[0].order_id, 'ORD-1001');
   console.log('   ✓ Registros listados correctamente.');
 
-  // 4. Test GET /api/export-csv
-  console.log('4. Probando GET /api/export-csv...');
+  // 5. Test GET /api/export-csv
+  console.log('5. Probando GET /api/export-csv...');
   const exportRes = await request('GET', '/api/export-csv');
   assert.strictEqual(exportRes.statusCode, 200);
   assert(exportRes.headers['content-type'].includes('text/csv'));
@@ -81,13 +89,26 @@ async function runE2E() {
   assert(exportRes.body.includes('ORD-1001'));
   console.log('   ✓ Exportación CSV generada y validada con cabeceras.');
 
-  // 5. Test Frontend Static serving
-  console.log('5. Probando carga de interfaz estática GET /...');
+  // 6. Test DELETE /api/clear
+  console.log('6. Probando DELETE /api/clear...');
+  const clearRes = await request('DELETE', '/api/clear');
+  assert.strictEqual(clearRes.statusCode, 200);
+  const clearData = JSON.parse(clearRes.body);
+  assert.strictEqual(clearData.success, true);
+
+  const emptyRecRes = await request('GET', '/api/records');
+  const emptyRecords = JSON.parse(emptyRecRes.body);
+  assert.strictEqual(emptyRecords.length, 0, 'Database should be empty after clear');
+  console.log('   ✓ Base de datos reiniciada correctamente.');
+
+  // 7. Test Frontend Static serving
+  console.log('7. Probando carga de interfaz estática GET /...');
   const htmlRes = await request('GET', '/');
   assert.strictEqual(htmlRes.statusCode, 200);
   assert(htmlRes.body.includes('Conciliador de Ganancias'));
+  assert(htmlRes.body.includes('btn-lang-toggle'));
   assert(htmlRes.body.includes('pico.min.css'));
-  console.log('   ✓ Frontend servido en / con Pico.css v2 CDN.');
+  console.log('   ✓ Frontend servido en / con soporte i18n y Pico.css v2 CDN.');
 
   console.log('\n🎉 ¡Todas las pruebas End-to-End se completaron satisfactoriamente!');
 

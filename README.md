@@ -23,7 +23,10 @@ Muchos vendedores en **Shopify, Stripe, MercadoLibre, Amazon o WooCommerce** cal
 
 ## ✨ Características Principales
 
-- ⚡ **Ingesta Ultra Rápida de CSVs:** Procesamiento en *streaming* con `multer` y `csv-parser` mediante transacciones atómicas en SQLite.
+- 🌐 **Soporte Bilingüe (i18n):** Interfaz completa en Español e Inglés con detección automática del idioma del navegador y selector manual en barra de navegación.
+- ⚡ **Ingesta Ultra Rápida con Drag & Drop:** Procesamiento en *streaming* con `multer` y `csv-parser` mediante transacciones atómicas en SQLite.
+- 🧠 **Normalización Inteligente de Cabeceras:** Acepta automáticamente sinónimos en inglés y español exportados por Shopify, MercadoLibre, WooCommerce y Stripe (`precio`/`price`, `costo`/`cost`, `envio`/`shipping`, etc.).
+- 📄 **Plantilla / Molde CSV en 1 Clic:** Endpoint `/api/template-csv` y botón interactivo para descargar la plantilla con formato validado.
 - 🧮 **Motor Matemático Financiero Oficial:**
   - $\text{Ingreso Bruto} = \text{Precio} \times \text{Cantidad}$
   - $\text{Comisión Pasarela} = (\text{Ingreso Bruto} \times 0.029) + 0.30$
@@ -31,6 +34,7 @@ Muchos vendedores en **Shopify, Stripe, MercadoLibre, Amazon o WooCommerce** cal
   - $\text{Ganancia Neta} = \text{Ingreso Bruto} - \text{Comisión} - \text{Costo Total}$
   - $\text{Margen Neto (\%)} = \left(\frac{\text{Ganancia Neta}}{\text{Ingreso Bruto}}\right) \times 100$
 - 🚨 **Detección Automática de Pérdidas (`is_loss`):** Resaltado visual instantáneo en rojo con badges semánticos (`⚠️ PÉRDIDA` vs `✓ RENTABLE`).
+- 🔍 **Buscador en Vivo y Filtro "Solo Pérdidas":** Aísla de inmediato las operaciones en saldo negativo sin navegar fila por fila.
 - 📈 **Tarjetas de KPIs Globales:** Facturación Total Bruta, Comisiones Totales Pagadas y Ganancia Neta Real consolidada.
 - 💾 **Persistencia SQLite con Modo WAL:** Cero sobrecarga de bases de datos externas pesadas; arranque inmediato y concurrencia optimizada con `better-sqlite3`.
 - 📤 **Exportación de Reportes Conciliados:** Descarga en 1 clic del archivo `reporte_conciliado.csv` con todas las métricas calculadas.
@@ -87,6 +91,7 @@ Abre en tu navegador: **`http://localhost:3000`**
 
 | Método | Endpoint | Descripción | Parámetros / Payload |
 | :--- | :--- | :--- | :--- |
+| `GET` | `/api/template-csv` | Descarga el archivo de plantilla `plantilla_ventas.csv` | Ninguno |
 | `POST` | `/api/upload-csv` | Sube y concilia un archivo CSV | FormData con campo `file` |
 | `POST` / `GET` | `/api/load-demo` | Carga el dataset de prueba `demo_sales.csv` | Ninguno |
 | `GET` | `/api/records` | Lista todas las transacciones procesadas | Ninguno |
