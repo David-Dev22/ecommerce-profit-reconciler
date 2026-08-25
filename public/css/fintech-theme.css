@@ -1,0 +1,266 @@
+/* ==========================================================================
+   FinTech Dashboard Theme - E-Commerce Profit Reconciler
+   Design System & Glassmorphism Styles (Pico.css v2 Overrides)
+   ========================================================================== */
+
+:root {
+  /* Fondos y Superficies FinTech Dark */
+  --bg-app-dark: #090d16;
+  --bg-surface-slate: #0f172a;
+  --bg-surface-elevated: #1e293b;
+  --bg-glass: rgba(15, 23, 42, 0.75);
+  --border-glass: rgba(148, 163, 184, 0.12);
+  --border-glass-glow: rgba(16, 185, 129, 0.35);
+
+  /* Acentos FinTech */
+  --color-profit: #10b981;        /* Esmeralda Vibrante */
+  --color-profit-glow: rgba(16, 185, 129, 0.2);
+  --color-profit-bg: rgba(16, 185, 129, 0.12);
+
+  --color-loss: #f43f5e;          /* Carmesí Vibrante */
+  --color-loss-glow: rgba(244, 63, 94, 0.2);
+  --color-loss-bg: rgba(244, 63, 94, 0.12);
+
+  --color-commission: #f59e0b;    /* Ámbar */
+  --color-costs: #94a3b8;         /* Slate Neutral */
+  
+  /* Textos */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Pico CSS Overrides */
+  --pico-background-color: #090d16;
+  --pico-card-background-color: rgba(15, 23, 42, 0.75);
+  --pico-card-border-color: rgba(148, 163, 184, 0.12);
+  --pico-color: #f8fafc;
+  --pico-muted-color: #94a3b8;
+  --pico-primary: #10b981;
+  --pico-primary-background: #10b981;
+  --pico-primary-hover: #059669;
+  --pico-primary-hover-background: #059669;
+  --pico-primary-border: #10b981;
+  --pico-primary-underline: rgba(16, 185, 129, 0.5);
+  --pico-border-radius: 12px;
+}
+
+/* Light Theme Variables Fallback/Adaptation */
+[data-theme="light"] {
+  --bg-app-dark: #f8fafc;
+  --bg-surface-slate: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --border-glass: rgba(148, 163, 184, 0.25);
+  --border-glass-glow: rgba(16, 185, 129, 0.25);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --pico-background-color: #f8fafc;
+  --pico-card-background-color: rgba(255, 255, 255, 0.85);
+  --pico-card-border-color: rgba(148, 163, 184, 0.25);
+  --pico-color: #0f172a;
+  --pico-muted-color: #475569;
+}
+
+/* Global Body Styling */
+body {
+  background-color: var(--bg-app-dark);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(244, 63, 94, 0.04) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Header & Navbar */
+header.container nav {
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-glass);
+  padding-bottom: 1rem;
+}
+
+#nav-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Tarjetas de KPIs con Glassmorphism */
+.kpi-card, article {
+  background: var(--bg-glass) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-glass) !important;
+  border-radius: 16px !important;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.kpi-card:hover, article:hover {
+  transform: translateY(-3px);
+  border-color: rgba(148, 163, 184, 0.25) !important;
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+}
+
+.kpi-card.profit-kpi {
+  border-top: 3px solid var(--color-profit) !important;
+}
+
+.kpi-card.fee-kpi {
+  border-top: 3px solid var(--color-commission) !important;
+}
+
+.kpi-card.loss-kpi {
+  border-top: 3px solid var(--color-loss) !important;
+}
+
+.kpi-card h2, article h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0.25rem 0;
+}
+
+/* Badges / Píldoras de Estado (Pill Badges) */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.badge-pill.profitable {
+  background-color: var(--color-profit-bg);
+  color: var(--color-profit);
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 12px var(--color-profit-glow);
+}
+
+.badge-pill.loss {
+  background-color: var(--color-loss-bg);
+  color: var(--color-loss);
+  border-color: rgba(244, 63, 94, 0.3);
+  box-shadow: 0 0 12px var(--color-loss-glow);
+  animation: pulse-border 2s infinite ease-in-out;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(244, 63, 94, 0.3); }
+  50% { border-color: rgba(244, 63, 94, 0.7); box-shadow: 0 0 18px var(--color-loss-glow); }
+}
+
+/* Zona de Carga Drag & Drop Interactiva */
+.dropzone-container {
+  border: 2px dashed var(--border-glass);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.4);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.dropzone-container:hover,
+.dropzone-container.is-dragover {
+  border-color: var(--color-profit) !important;
+  background: rgba(16, 185, 129, 0.06);
+  box-shadow: 0 0 25px var(--color-profit-glow);
+  transform: scale(1.008);
+}
+
+.dropzone-icon {
+  font-size: 2.8rem;
+  margin-bottom: 0.75rem;
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.dropzone-container.is-dragover .dropzone-icon {
+  transform: translateY(-8px) scale(1.15);
+}
+
+.dropzone-text {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+/* Tabla Estilizada FinTech */
+figure {
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-glass);
+}
+
+table[role="grid"] {
+  margin: 0;
+  border-collapse: collapse;
+}
+
+table[role="grid"] th {
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+table[role="grid"] td {
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.06);
+  vertical-align: middle;
+}
+
+table[role="grid"] tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+table[role="grid"] tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+table[role="grid"] tbody tr.row-loss {
+  background-color: rgba(244, 63, 94, 0.03);
+}
+
+table[role="grid"] tbody tr.row-loss:hover {
+  background-color: rgba(244, 63, 94, 0.07);
+}
+
+/* Botones y Controles */
+button, input[type="submit"] {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+}
+
+button:hover, input[type="submit"]:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Contenedor del Gráfico */
+.chart-container-card {
+  margin-top: 1.5rem;
+}

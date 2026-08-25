@@ -6,6 +6,10 @@
   <title>Conciliador de Ganancias E-commerce</title>
   <!-- Pico.css v2 CDN -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <!-- FinTech Dark Glassmorphism Theme -->
+  <link rel="stylesheet" href="/css/fintech-theme.css">
+  <!-- Chart.js v4+ CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
@@ -40,7 +44,7 @@
     <!-- Tarjetas de Métricas Clave (3 Columnas) -->
     <section>
       <div class="grid">
-        <article>
+        <article class="kpi-card">
           <header>
             <small><strong id="kpi-gross-title">Facturación Total Bruta</strong></small>
           </header>
@@ -50,31 +54,42 @@
           </footer>
         </article>
 
-        <article>
+        <article class="kpi-card fee-kpi">
           <header>
             <small><strong id="kpi-fee-title">Comisiones Totales Pagadas</strong></small>
           </header>
-          <h2 id="fee-total">$0.00</h2>
+          <h2 id="fee-total" style="color: var(--color-commission);">$0.00</h2>
           <footer>
             <small id="kpi-fee-formula">Fórmula: (Bruto &times; 2.9%) + $0.30</small>
           </footer>
         </article>
 
-        <article>
+        <article class="kpi-card profit-kpi">
           <header>
             <small><strong id="kpi-net-title">Ganancia Neta Real</strong></small>
           </header>
-          <h2 id="net-total">$0.00</h2>
+          <h2 id="net-total" style="color: var(--color-profit);">$0.00</h2>
           <footer>
             <small id="loss-count">0 operaciones en pérdida</small>
           </footer>
         </article>
       </div>
+
+      <!-- Gráfico de Distribución FinTech -->
+      <article class="kpi-card chart-container-card" style="margin-top: 1.5rem;">
+        <header>
+          <h3 style="margin: 0; font-size: 1.15rem;" id="chart-title">📊 Distribución de Ingresos y Costos</h3>
+          <small class="text-secondary" id="chart-subtitle" style="color: var(--text-secondary);">Desglose porcentual sobre el total facturado</small>
+        </header>
+        <div style="position: relative; height: 280px; width: 100%; display: flex; justify-content: center; align-items: center; padding: 10px 0;">
+          <canvas id="profitDistributionChart"></canvas>
+        </div>
+      </article>
     </section>
 
     <!-- Panel de Control y Acciones -->
     <section>
-      <article id="drop-zone">
+      <article id="drop-zone" class="kpi-card">
         <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <strong id="panel-title">⚙️ Panel de Control y Procesamiento</strong>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -85,19 +100,19 @@
         </header>
 
         <form id="upload-form">
-          <div class="grid">
-            <div>
-              <label for="csv-file" id="file-input-label">
-                Seleccionar o Arrastrar Archivo CSV de Ventas
-                <input type="file" id="csv-file" accept=".csv" required>
-              </label>
+          <div id="dropzone-container" class="dropzone-container">
+            <span class="dropzone-icon">📥</span>
+            <div class="dropzone-text" id="dropzone-text-label">
+              <strong id="dropzone-main-text">Arrastra y suelta aquí tu archivo CSV</strong>
+              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;" id="dropzone-sub-text">o haz clic para seleccionar desde tu equipo</div>
             </div>
-            <div style="display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap;">
-              <button type="submit" id="btn-upload">📤 Procesar CSV</button>
-              <button type="button" class="secondary" id="btn-load-demo">⚡ Cargar Demo</button>
-              <button type="button" class="contrast" id="btn-export-excel" style="background-color: #059669; border-color: #059669; color: white;">📊 Descargar Excel</button>
-              <button type="button" class="contrast outline" id="btn-export-csv">📄 Descargar CSV</button>
-            </div>
+            <input type="file" id="csv-file" accept=".csv" style="display: none;">
+          </div>
+          <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <button type="submit" id="btn-upload">📤 Procesar CSV</button>
+            <button type="button" class="secondary" id="btn-load-demo">⚡ Cargar Demo</button>
+            <button type="button" class="contrast" id="btn-export-excel" style="background-color: #059669; border-color: #059669; color: white;">📊 Descargar Excel</button>
+            <button type="button" class="contrast outline" id="btn-export-csv">📄 Descargar CSV</button>
           </div>
         </form>
 
@@ -187,11 +202,18 @@
         transCountSuffix: 'transacciones registradas',
         transProcSuffix: 'transacciones procesadas',
         lossCountText: 'operaciones en pérdida',
+        chartTitle: '📊 Distribución de Ingresos y Costos',
+        chartSubtitle: 'Desglose porcentual sobre el total facturado',
+        chartLabelProfit: 'Ganancia Neta (Tienda)',
+        chartLabelFee: 'Comisiones Pasarelas',
+        chartLabelCosts: 'Costos Producto / Envío',
         panelTitle: '⚙️ Panel de Control y Procesamiento',
         btnDownloadTemplateCsv: '📄 Plantilla CSV',
         btnDownloadTemplateExcel: '📊 Plantilla Excel (.xlsx)',
         btnClearData: '🗑️ Limpiar Datos',
-        fileInputLabel: 'Seleccionar o Arrastrar Archivo CSV de Ventas',
+        dropzoneMainText: 'Arrastra y suelta aquí tu archivo CSV',
+        dropzoneSubText: 'o haz clic para seleccionar desde tu equipo',
+        dropzoneReadyText: 'Listo para procesar',
         btnUpload: '📤 Procesar CSV',
         btnLoadDemo: '⚡ Cargar Demo',
         btnExportExcel: '📊 Descargar Excel',
@@ -218,14 +240,19 @@
         thNet: 'Ganancia Neta',
         thMargin: 'Margen %',
         thStatus: 'Estado',
-        tableEmptyMsg: 'No hay registros cargados. Sube un archivo CSV o haz clic en "Cargar Datos Demo".',
+        tableEmptyMsg: 'No hay registros cargados. Arrastra un archivo CSV o haz clic en "Cargar Datos Demo".',
+        noFilterMatch: 'No se encontraron transacciones con el filtro aplicado.',
         badgeLoss: '⚠️ PÉRDIDA',
         badgeProfitable: '✓ RENTABLE',
         footerText: 'Conciliador de Ganancias E-commerce © 2026 • Construido con Node.js, SQLite & Pico.css v2',
-        noFileAlert: 'Por favor, selecciona un archivo .csv para procesar.',
+        noFileAlert: 'Por favor selecciona un archivo .CSV válido para procesar.',
         demoLoadedMsg: 'Dataset demo cargado correctamente.',
         clearedMsg: 'Todos los registros han sido eliminados.',
-        confirmClear: '¿Estás seguro de que deseas limpiar todos los datos registrados?'
+        confirmClear: '¿Estás seguro de que deseas limpiar todos los datos registrados?',
+        themeToggleTitle: 'Cambiar Tema',
+        serverErrorMsg: 'Error de conexión con el servidor: ',
+        clearErrorMsg: 'Error al limpiar datos: ',
+        demoErrorMsg: 'Error al cargar datos demo.'
       },
       en: {
         pageTitle: 'E-Commerce Profit Reconciler',
@@ -238,11 +265,18 @@
         transCountSuffix: 'recorded transactions',
         transProcSuffix: 'processed transactions',
         lossCountText: 'unprofitable loss sales',
+        chartTitle: '📊 Revenue & Cost Breakdown',
+        chartSubtitle: 'Percentage distribution over total billed volume',
+        chartLabelProfit: 'Real Net Profit',
+        chartLabelFee: 'Gateway Fees',
+        chartLabelCosts: 'Product & Shipping Costs',
         panelTitle: '⚙️ Control & Processing Panel',
         btnDownloadTemplateCsv: '📄 CSV Template',
         btnDownloadTemplateExcel: '📊 Excel Template (.xlsx)',
         btnClearData: '🗑️ Clear Data',
-        fileInputLabel: 'Select or Drag & Drop Sales CSV File',
+        dropzoneMainText: 'Drag & Drop your CSV sales file here',
+        dropzoneSubText: 'or click to browse from your device',
+        dropzoneReadyText: 'Ready to process',
         btnUpload: '📤 Process CSV',
         btnLoadDemo: '⚡ Load Demo',
         btnExportExcel: '📊 Download Excel',
@@ -269,14 +303,19 @@
         thNet: 'Net Profit',
         thMargin: 'Margin %',
         thStatus: 'Status',
-        tableEmptyMsg: 'No records loaded. Upload a CSV file or click "Load Demo Data".',
+        tableEmptyMsg: 'No records loaded. Drag & drop a CSV file or click "Load Demo Data".',
+        noFilterMatch: 'No transactions matched the active filter.',
         badgeLoss: '⚠️ LOSS',
         badgeProfitable: '✓ PROFITABLE',
         footerText: 'E-Commerce Profit Reconciler © 2026 • Built with Node.js, SQLite & Pico.css v2',
         noFileAlert: 'Please select a valid .csv file to process.',
         demoLoadedMsg: 'Demo dataset loaded successfully.',
         clearedMsg: 'All records have been cleared.',
-        confirmClear: 'Are you sure you want to clear all stored transactions?'
+        confirmClear: 'Are you sure you want to clear all stored transactions?',
+        themeToggleTitle: 'Toggle Theme',
+        serverErrorMsg: 'Server connection error: ',
+        clearErrorMsg: 'Error clearing data: ',
+        demoErrorMsg: 'Error loading demo data.'
       }
     };
 
@@ -295,6 +334,11 @@
     }
     const currentSessionId = getOrCreateSessionId();
 
+    // Escape HTML Helper
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     // Formateador de moneda USD
     const currencyFormatter = new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -303,8 +347,9 @@
       maximumFractionDigits: 2
     });
 
-    // Estado global de registros
+    // Estado global de registros y resumen
     let currentRecords = [];
+    let currentSummary = { gross_total: 0, fee_total: 0, net_total: 0, total_records: 0, loss_count: 0 };
 
     // Elementos DOM
     const grossTotalEl = document.getElementById('gross-total');
@@ -312,11 +357,16 @@
     const netTotalEl = document.getElementById('net-total');
     const totalCountEl = document.getElementById('total-count');
     const lossCountEl = document.getElementById('loss-count');
+    const chartTitleEl = document.getElementById('chart-title');
+    const chartSubtitleEl = document.getElementById('chart-subtitle');
     const statusMsgEl = document.getElementById('status-message');
     const recordsTbodyEl = document.getElementById('records-tbody');
     const tableBadgeEl = document.getElementById('table-summary-badge');
     const uploadForm = document.getElementById('upload-form');
     const csvFileInput = document.getElementById('csv-file');
+    const dropzoneContainer = document.getElementById('dropzone-container');
+    const dropzoneMainText = document.getElementById('dropzone-main-text');
+    const dropzoneSubText = document.getElementById('dropzone-sub-text');
     const btnUpload = document.getElementById('btn-upload');
     const btnDemo = document.getElementById('btn-load-demo');
     const btnExportExcel = document.getElementById('btn-export-excel');
@@ -329,7 +379,121 @@
     const langLabel = document.getElementById('lang-label');
     const searchInput = document.getElementById('search-input');
     const filterLossOnly = document.getElementById('filter-loss-only');
-    const dropZone = document.getElementById('drop-zone');
+
+    /**
+     * Gestor del Gráfico de Distribución Financiera con Chart.js
+     */
+    class FinancialChartManager {
+      constructor(canvasId) {
+        this.canvasId = canvasId;
+        this.chartInstance = null;
+      }
+
+      /**
+       * Renderiza o actualiza el gráfico con nuevos datos
+       * @param {Object} summary - Resumen financiero
+       * @param {string} lang - Código de idioma actual
+       */
+      updateChart(summary, lang = currentLang) {
+        const canvas = document.getElementById(this.canvasId);
+        if (!canvas) return;
+
+        if (typeof Chart === 'undefined') {
+          console.warn('Chart.js aún no está disponible.');
+          return;
+        }
+
+        const netProfit = Math.max(0, Number(summary.net_total || 0));
+        const commission = Math.max(0, Number(summary.fee_total ?? summary.commission_total ?? 0));
+        const gross = Number(summary.gross_total || 0);
+        const costs = Math.max(0, Number(gross - netProfit - commission));
+
+        const total = netProfit + commission + costs;
+        const t = translations[lang] || translations.es;
+
+        const labels = [
+          t.chartLabelProfit,
+          t.chartLabelFee,
+          t.chartLabelCosts
+        ];
+
+        const dataValues = total > 0 ? [netProfit, commission, costs] : [0, 0, 0];
+
+        // Destruye instancia previa para evitar fugas de memoria y solapamientos
+        if (this.chartInstance) {
+          this.chartInstance.destroy();
+          this.chartInstance = null;
+        }
+
+        const ctx = canvas.getContext('2d');
+        this.chartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: dataValues,
+              backgroundColor: [
+                '#10b981', // 🟢 Verde Esmeralda (Ganancia Neta)
+                '#f43f5e', // 🔴 Rojo Carmesí (Comisiones)
+                '#94a3b8'  // ⚪ Slate Neutral (Costos)
+              ],
+              borderColor: '#0f172a',
+              borderWidth: 3,
+              hoverOffset: 8,
+              hoverBorderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: '#94a3b8',
+                  font: {
+                    family: 'system-ui, -apple-system, sans-serif',
+                    size: 12,
+                    weight: '500'
+                  },
+                  padding: 16,
+                  usePointStyle: true,
+                  pointStyle: 'circle'
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                titleColor: '#f8fafc',
+                bodyColor: '#cbd5e1',
+                borderColor: 'rgba(148, 163, 184, 0.2)',
+                borderWidth: 1,
+                padding: 12,
+                boxPadding: 6,
+                usePointStyle: true,
+                callbacks: {
+                  label: function(context) {
+                    const value = context.raw || 0;
+                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+                    const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+                    return ` ${context.label}: ${formatted} (${percentage}%)`;
+                  }
+                }
+              }
+            },
+            animation: {
+              animateScale: true,
+              animateRotate: true,
+              duration: 1000,
+              easing: 'easeOutQuart'
+            }
+          }
+        });
+      }
+    }
+
+    // Instancia global exportada
+    window.financialChartManager = new FinancialChartManager('profitDistributionChart');
 
     // Función para aplicar traducciones
     function applyLanguage(lang) {
@@ -344,11 +508,22 @@
       document.getElementById('kpi-fee-title').textContent = t.kpiFeeTitle;
       document.getElementById('kpi-fee-formula').innerHTML = t.kpiFeeFormula;
       document.getElementById('kpi-net-title').textContent = t.kpiNetTitle;
+      if (chartTitleEl) chartTitleEl.textContent = t.chartTitle;
+      if (chartSubtitleEl) chartSubtitleEl.textContent = t.chartSubtitle;
       document.getElementById('panel-title').textContent = t.panelTitle;
       btnDownloadTemplateCsv.textContent = t.btnDownloadTemplateCsv;
       btnDownloadTemplateExcel.textContent = t.btnDownloadTemplateExcel;
       btnClearData.textContent = t.btnClearData;
-      document.getElementById('file-input-label').childNodes[0].textContent = t.fileInputLabel + ' ';
+      
+      if (!csvFileInput.files || csvFileInput.files.length === 0) {
+        if (dropzoneMainText) dropzoneMainText.textContent = t.dropzoneMainText;
+        if (dropzoneSubText) dropzoneSubText.textContent = t.dropzoneSubText;
+      } else {
+        const file = csvFileInput.files[0];
+        if (dropzoneMainText) dropzoneMainText.innerHTML = `📄 ${escapeHtml(file.name)}`;
+        if (dropzoneSubText) dropzoneSubText.innerHTML = `(${(file.size / 1024).toFixed(1)} KB) — ${t.dropzoneReadyText}`;
+      }
+
       btnUpload.textContent = t.btnUpload;
       btnDemo.textContent = t.btnLoadDemo;
       btnExportExcel.textContent = t.btnExportExcel;
@@ -368,8 +543,10 @@
       document.getElementById('th-margin').textContent = t.thMargin;
       document.getElementById('th-status').textContent = t.thStatus;
       document.getElementById('footer-text').innerHTML = t.footerText;
+      btnTheme.title = t.themeToggleTitle;
       langLabel.textContent = lang === 'es' ? 'EN' : 'ES';
 
+      updateMetrics(currentSummary);
       renderTable();
     }
 
@@ -407,35 +584,44 @@
       }, 7000);
     }
 
-    // Actualizar Tarjetas de Métricas
+    // Actualizar Tarjetas de Métricas y Gráfico
     function updateMetrics(summary) {
+      currentSummary = summary || { gross_total: 0, fee_total: 0, net_total: 0, total_records: 0, loss_count: 0 };
       const t = translations[currentLang];
-      const gross = summary.gross_total || 0;
-      const fee = summary.fee_total || 0;
-      const net = summary.net_total || 0;
-      const total = summary.total_records || 0;
-      const loss = summary.loss_count || 0;
+      const gross = currentSummary.gross_total || 0;
+      const fee = currentSummary.fee_total || 0;
+      const net = currentSummary.net_total || 0;
+      const total = currentSummary.total_records || 0;
+      const loss = currentSummary.loss_count || 0;
 
       grossTotalEl.textContent = currencyFormatter.format(gross);
       feeTotalEl.textContent = currencyFormatter.format(fee);
       netTotalEl.textContent = currencyFormatter.format(net);
       
-      totalCountEl.textContent = `${total} ${t.transProcSuffix}`;
+      totalCountEl.textContent = total > 0 ? `${total} ${t.transProcSuffix}` : `0 ${t.transCountSuffix}`;
       lossCountEl.innerHTML = loss > 0 
-        ? `<mark><strong>${loss} ${t.lossCountText}</strong></mark>` 
+        ? `<mark style="background-color: var(--color-loss-bg); color: var(--color-loss); border-radius: 6px; padding: 2px 6px;"><strong>${loss} ${t.lossCountText}</strong></mark>` 
         : `0 ${t.lossCountText}`;
 
-      tableBadgeEl.innerHTML = `<small>Total: <strong>${total}</strong> | ${currentLang === 'es' ? 'Pérdidas' : 'Losses'}: <strong>${loss}</strong></small>`;
+      if (total === 0) {
+        tableBadgeEl.innerHTML = `<small>${t.waitingData}</small>`;
+      } else {
+        tableBadgeEl.innerHTML = `<small>Total: <strong>${total}</strong> | ${currentLang === 'es' ? 'Pérdidas' : 'Losses'}: <strong style="color: ${loss > 0 ? 'var(--color-loss)' : 'inherit'}">${loss}</strong></small>`;
+      }
+
+      if (window.financialChartManager) {
+        window.financialChartManager.updateChart(currentSummary, currentLang);
+      }
     }
 
-    // Renderizar Filas de la Tabla con Filtros de Búsqueda y Pérdida
+    // Renderizar Filas de la Tabla con Filtros de Búsqueda y Badges FinTech
     function renderTable() {
       const t = translations[currentLang];
       if (!currentRecords || currentRecords.length === 0) {
         recordsTbodyEl.innerHTML = `
           <tr>
-            <td colspan="8" style="text-align: center;">
-              <small>${t.tableEmptyMsg}</small>
+            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+              <small id="table-empty-msg">${t.tableEmptyMsg}</small>
             </td>
           </tr>`;
         return;
@@ -445,7 +631,7 @@
       const onlyLosses = filterLossOnly.checked;
 
       const filtered = currentRecords.filter(row => {
-        const isLoss = row.is_loss === 1 || row.is_loss === true;
+        const isLoss = Number(row.is_loss) === 1 || row.is_loss === true || Number(row.net_profit) < 0;
         if (onlyLosses && !isLoss) return false;
         if (searchTerm) {
           const matchId = (row.order_id || '').toLowerCase().includes(searchTerm);
@@ -458,38 +644,38 @@
       if (filtered.length === 0) {
         recordsTbodyEl.innerHTML = `
           <tr>
-            <td colspan="8" style="text-align: center;">
-              <small>${currentLang === 'es' ? 'No se encontraron transacciones con el filtro aplicado.' : 'No transactions matched the active filter.'}</small>
+            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+              <small>${t.noFilterMatch}</small>
             </td>
           </tr>`;
         return;
       }
 
       recordsTbodyEl.innerHTML = filtered.map(row => {
-        const isLoss = row.is_loss === 1 || row.is_loss === true;
-        const statusBadge = isLoss
-          ? `<mark role="alert"><strong>${t.badgeLoss}</strong></mark>`
-          : `<ins><strong>${t.badgeProfitable}</strong></ins>`;
+        const isLoss = Number(row.is_loss) === 1 || row.is_loss === true || Number(row.net_profit) < 0;
+        
+        // Badge FinTech tipo píldora
+        const badgeHtml = isLoss
+          ? `<span class="badge-pill loss">${t.badgeLoss}</span>`
+          : `<span class="badge-pill profitable">${t.badgeProfitable}</span>`;
 
-        const netProfitFormatted = currencyFormatter.format(row.net_profit);
-        const netProfitDisplay = isLoss
-          ? `<mark><strong>${netProfitFormatted}</strong></mark>`
-          : `<strong>${netProfitFormatted}</strong>`;
+        const netProfitFormatted = currencyFormatter.format(row.net_profit || 0);
+        const netProfitDisplay = `<span style="color: ${isLoss ? 'var(--color-loss)' : 'var(--color-profit)'}; font-weight: 700;">${netProfitFormatted}</span>`;
 
-        const marginDisplay = isLoss
-          ? `<mark>${row.net_margin}%</mark>`
-          : `${row.net_margin}%`;
+        const marginDisplay = `<span style="color: ${isLoss ? 'var(--color-loss)' : 'var(--color-profit)'}; font-weight: 600;">${Number(row.net_margin ?? 0).toFixed(2)}%</span>`;
+
+        const feeDisplay = `<span style="color: var(--color-commission);">${currencyFormatter.format(row.platform_fee || 0)}</span>`;
 
         return `
-          <tr ${isLoss ? 'aria-invalid="true"' : ''}>
-            <td><code>${row.order_id}</code></td>
-            <td>${row.product_name || '—'}</td>
-            <td>${currencyFormatter.format(row.gross_income)}</td>
-            <td>${currencyFormatter.format(row.platform_fee)}</td>
-            <td>${currencyFormatter.format(row.total_cost)}</td>
+          <tr class="${isLoss ? 'row-loss' : 'row-profit'}" ${isLoss ? 'aria-invalid="true"' : ''}>
+            <td><code>${escapeHtml(row.order_id)}</code></td>
+            <td><strong>${escapeHtml(row.product_name || '—')}</strong></td>
+            <td>${currencyFormatter.format(row.gross_income || 0)}</td>
+            <td>${feeDisplay}</td>
+            <td style="color: var(--color-costs);">${currencyFormatter.format(row.total_cost || 0)}</td>
             <td>${netProfitDisplay}</td>
             <td>${marginDisplay}</td>
-            <td>${statusBadge}</td>
+            <td>${badgeHtml}</td>
           </tr>
         `;
       }).join('');
@@ -552,47 +738,92 @@
           renderTable();
           showNotification(data.message || (currentLang === 'es' ? 'Archivo procesado con éxito.' : 'File processed successfully.'));
           csvFileInput.value = '';
+          if (dropzoneMainText) dropzoneMainText.textContent = t.dropzoneMainText;
+          if (dropzoneSubText) dropzoneSubText.textContent = t.dropzoneSubText;
         } else {
           showNotification(data.message || (currentLang === 'es' ? 'Error al procesar el archivo.' : 'Error processing file.'), true);
         }
       } catch (error) {
-        showNotification('Error de conexión con el servidor: ' + error.message, true);
+        showNotification(t.serverErrorMsg + error.message, true);
       } finally {
         btnUpload.removeAttribute('aria-busy');
         btnUpload.disabled = false;
       }
     }
 
+    // Inicializador de Zona Drag & Drop
+    function initDragAndDrop(dropzoneId, fileInputId, onFileSelected) {
+      const dropzone = document.getElementById(dropzoneId);
+      const fileInput = document.getElementById(fileInputId);
+
+      if (!dropzone || !fileInput) return;
+
+      // Clic en la zona abre el selector nativo
+      dropzone.addEventListener('click', (e) => {
+        if (e.target !== fileInput) {
+          fileInput.click();
+        }
+      });
+
+      // Eventos de arrastre
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('is-dragover');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('is-dragover');
+        }, false);
+      });
+
+      // Soltado de archivo
+      dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files && files.length > 0) {
+          fileInput.files = files;
+          handleSelectedFile(files[0]);
+        }
+      });
+
+      // Cambio manual vía selector de archivos
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleSelectedFile(e.target.files[0]);
+        }
+      });
+
+      function handleSelectedFile(file) {
+        const t = translations[currentLang];
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+          showNotification(t.noFileAlert, true);
+          return;
+        }
+        if (dropzoneMainText) {
+          dropzoneMainText.innerHTML = `📄 ${escapeHtml(file.name)}`;
+        }
+        if (dropzoneSubText) {
+          dropzoneSubText.innerHTML = `(${(file.size / 1024).toFixed(1)} KB) — ${t.dropzoneReadyText}`;
+        }
+        if (typeof onFileSelected === 'function') {
+          onFileSelected(file);
+        }
+      }
+    }
+
+    // Inicializar Drag & Drop
+    initDragAndDrop('dropzone-container', 'csv-file');
+
     // Evento Formulario Subida
     uploadForm.addEventListener('submit', (e) => {
       e.preventDefault();
       processCsvFile(csvFileInput.files[0]);
-    });
-
-    // Soporte Drag & Drop
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.style.border = '2px dashed var(--pico-primary)';
-      });
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.style.border = '';
-      });
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      if (files && files.length > 0) {
-        csvFileInput.files = files;
-        processCsvFile(files[0]);
-      }
     });
 
     // Evento: Cargar Datos Demo para la Sesión
@@ -616,10 +847,10 @@
           renderTable();
           showNotification(data.message || t.demoLoadedMsg);
         } else {
-          showNotification(data.message || 'Error al cargar datos demo.', true);
+          showNotification(data.message || t.demoErrorMsg, true);
         }
       } catch (error) {
-        showNotification('Error de conexión con el servidor: ' + error.message, true);
+        showNotification(t.serverErrorMsg + error.message, true);
       } finally {
         btnDemo.removeAttribute('aria-busy');
         btnDemo.disabled = false;
@@ -666,7 +897,7 @@
           showNotification(t.clearedMsg);
         }
       } catch (err) {
-        showNotification('Error al limpiar datos: ' + err.message, true);
+        showNotification(t.clearErrorMsg + err.message, true);
       }
     });
 
