@@ -49,17 +49,78 @@
   --bg-app-dark: #f8fafc;
   --bg-surface-slate: #ffffff;
   --bg-surface-elevated: #f1f5f9;
-  --bg-glass: rgba(255, 255, 255, 0.85);
-  --border-glass: rgba(148, 163, 184, 0.25);
+  --bg-glass: rgba(255, 255, 255, 0.92);
+  --border-glass: rgba(148, 163, 184, 0.35);
   --border-glass-glow: rgba(16, 185, 129, 0.25);
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
   --pico-background-color: #f8fafc;
-  --pico-card-background-color: rgba(255, 255, 255, 0.85);
-  --pico-card-border-color: rgba(148, 163, 184, 0.25);
+  --pico-card-background-color: rgba(255, 255, 255, 0.92);
+  --pico-card-border-color: rgba(148, 163, 184, 0.35);
   --pico-color: #0f172a;
   --pico-muted-color: #475569;
+}
+
+[data-theme="light"] body {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(244, 63, 94, 0.05) 0px, transparent 50%);
+  color: #0f172a;
+}
+
+[data-theme="light"] #nav-title {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #0f172a;
+}
+
+[data-theme="light"] header.container nav {
+  border-bottom: 1px solid rgba(203, 213, 225, 0.8);
+}
+
+[data-theme="light"] .kpi-card,
+[data-theme="light"] article {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(203, 213, 225, 0.8) !important;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .kpi-card:hover,
+[data-theme="light"] article:hover {
+  border-color: rgba(148, 163, 184, 0.6) !important;
+  box-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .dropzone-container {
+  background: rgba(248, 250, 252, 0.9);
+  border-color: rgba(203, 213, 225, 0.9);
+}
+
+[data-theme="light"] table[role="grid"] th {
+  background: #f1f5f9;
+  color: #334155;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] table[role="grid"] td {
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+}
+
+[data-theme="light"] table[role="grid"] tbody tr:hover {
+  background-color: rgba(241, 245, 249, 0.7);
+}
+
+[data-theme="light"] table[role="grid"] tbody tr.row-loss {
+  background-color: rgba(254, 242, 242, 0.6);
+}
+
+[data-theme="light"] table[role="grid"] tbody tr.row-loss:hover {
+  background-color: rgba(254, 226, 226, 0.85);
 }
 
 /* Global Body Styling */
